@@ -5,8 +5,8 @@
 
 // ACTOR IMPLEMENTATION // 
 
-Actor::Actor(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world)
-	: GraphObject(id, x, y, dir, size, depth), m_alive(true), m_World(world)
+Actor::Actor(int id, int x, int y, Direction dir, double size, unsigned int depth)
+	: GraphObject(id, x, y, dir, size, depth), m_alive(true)
 {
 	setVisible(true);
 }
@@ -24,17 +24,13 @@ bool Actor::isStillAlive()
 void Actor::setDead()
 {
 	m_alive = false;
-}
-
-StudentWorld* Actor::getWorld() const
-{
-	return m_World;
+	setVisible(false);
 }
 
 // DIRT IMPLEMENTATION //
 
-Dirt::Dirt(int x, int y, StudentWorld* world)
-	: Actor(IID_DIRT, x, y, right, 0.25, 3, world)
+Dirt::Dirt(int x, int y)
+	: Actor(IID_DIRT, x, y, right, 0.25, 3)
 {}
 
 Dirt::~Dirt()
@@ -43,10 +39,38 @@ Dirt::~Dirt()
 void Dirt::doSomething()
 {}
 
+// MOVEABLE OBJECTS IMPLEMENTATION
+
+MoveableObjects::MoveableObjects(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world)
+	: Actor(id, x, y, dir, size, depth), m_World(world)
+{}
+
+MoveableObjects::~MoveableObjects()
+{}
+
+StudentWorld* MoveableObjects::getWorld() const
+{
+	return m_World;
+}
+
+// STATIONARY OBJECTS IMPLEMENTATION //
+
+StationaryObjects::StationaryObjects(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world)
+	: Actor(id, x, y, dir, size, depth), m_World(world)
+{}
+
+StationaryObjects::~StationaryObjects()
+{}
+
+StudentWorld* StationaryObjects::getWorld() const
+{
+	return m_World;
+}
+
 // FRACKMAN IMPLEMENTATION //
 
 FrackMan::FrackMan(StudentWorld* world)
-	: Actor(IID_PLAYER, 30, 60, right, 1, 0, world), m_hp(10), m_squirts(5), m_sCharges(1), m_gold(0)
+	: MoveableObjects(IID_PLAYER, 30, 60, right, 1, 0, world), m_hp(10), m_squirts(5), m_sCharges(1), m_gold(0)
 {}
 
 FrackMan::~FrackMan()
@@ -64,6 +88,31 @@ void FrackMan::doSomething()
 	{
 		switch (dir)
 		{
+		case KEY_PRESS_ESCAPE:
+			setDead();
+			break;
+		case KEY_PRESS_SPACE:
+			if (m_squirts > 0)
+			{
+				// getWorld()->insertSquirt(getX(), getY(), dir);
+				m_squirts--;
+			}
+			break;
+		case 'z':
+		case 'Z':
+			if (m_sCharges > 0)
+			{
+				// getWorld()->insertsCharge(getX(), getY());
+				m_sCharges--;
+			}
+			break;
+		case KEY_PRESS_TAB:
+			if (m_gold > 0)
+			{
+				// getWorld()->insertGold(getX(), getY());
+				m_gold--;
+			}
+			break;
 		case KEY_PRESS_LEFT:
 			if (getDirection() != left)
 				setDirection(left);
@@ -112,3 +161,121 @@ int FrackMan::getGold() const
 	return m_gold;
 }
 
+void FrackMan::setHP(int hp) 
+{
+	m_hp = hp;
+}
+
+void FrackMan::setSquirts(int squirts) 
+{
+	m_squirts = squirts;
+}
+
+void FrackMan::setsCharges(int charges) 
+{
+	m_sCharges = charges;
+}
+
+void FrackMan::setGold(int gold) 
+{
+	m_gold = gold;
+}
+
+// BOULDER IMPLEMENTATION //
+
+Boulder::Boulder(int x, int y, StudentWorld* world)
+	: MoveableObjects(IID_BOULDER, x, y, down, 1.0, 1, world), m_state(0), m_counter(30)
+{}
+
+Boulder::~Boulder()
+{}
+
+bool Boulder::isAnyDirtUnderBoulder()
+{
+	if (getWorld()->isThereDirtHere(getX(), getY() - 1) || getWorld()->isThereDirtHere(getX() + 1, getY() - 1) ||
+		getWorld()->isThereDirtHere(getX() + 2, getY() - 1) || getWorld()->isThereDirtHere(getX() + 3, getY() - 1))
+	{
+		return true;
+	}
+	return false;
+}
+
+void Boulder::doSomething()
+{
+	if (!isStillAlive())
+		return;
+
+	// if Boulder is in a stable state
+	if (m_state == 0)
+	{
+		if (!isAnyDirtUnderBoulder())
+		{
+			m_state = 1;
+		}
+	}
+	// if Boulder is in a waiting state
+	else if (m_state == 1)
+	{
+		if (m_counter == 0)
+		{
+			m_state = -1;
+			// GameController::getInstance().playSound(SOUND_FALLING_ROCK);
+		}
+		m_counter--;
+	}
+	// if Boulder is in a falling state
+	else 
+	{
+		if (getY() > 0 && !isAnyDirtUnderBoulder())
+			moveTo(getX(), getY() - 1);
+		else
+			setDead();
+	}
+
+	return;
+}
+
+// SQUIRT IMPLEMENTATION //
+
+Squirt::Squirt(int x, int y, Direction dir, StudentWorld* world)
+	: StationaryObjects(IID_WATER_SPURT, x, y, dir, 1.0, 1, world), m_distanceTrav(0)
+{}
+
+Squirt::~Squirt()
+{}
+
+void Squirt::doSomething()
+{
+	/*
+	If a Squirt is within a radius of 3.0 of one or more Protesters (up to and including
+	a distance of 3.0 squares away), it will cause 2 points of annoyance to these
+	Protester(s), and then immediately set its state to dead, so it can be removed from
+	the oil field at the end of the tick
+	*/
+
+	if (isStillAlive() && m_distanceTrav <= 4)
+	{
+		m_distanceTrav++;
+	}
+	else
+	{
+		setDead();
+	}
+}
+
+// BARRELS IMPLEMENTATION //
+
+Barrels::Barrels(int x, int y, StudentWorld* world)
+	: StationaryObjects(IID_BARREL, x, y, right, 1.0, 2, world) 
+{}
+
+Barrels::~Barrels()
+{}
+
+void Barrels::doSomething()
+{
+	if (!isStillAlive())
+		return;
+
+
+}

@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 #include "Actor.h"
+#include <iomanip>
+#include <sstream>
 
 using namespace std;
 
@@ -21,17 +23,18 @@ public:
 	virtual int init();
 	virtual int move();
 	virtual void cleanUp();
+	bool isThereDirtHere(int x, int y);
 	void destroyDirt(int x, int y);
+	void insertSquirt(int x, int y, int dir);
 	int min(int a, int b);
 	int max(int a, int b);
 	int randInt(int l, int h);
 	void setDisplayText();
+	string formatDisplayText(int score, int level, int lives, int health, int squirts, int gold, int sonar, int barrelsLeft);
 private:
 	vector <Dirt*> m_dirt;
 	vector<Actor*> m_actors;
 	FrackMan* fracker;
-	int m_score;
-	int m_level;
 	int m_barrelsLeft;
 };
 
