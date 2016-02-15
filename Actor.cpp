@@ -4,8 +4,9 @@
 // Students:  Add code to this file (if you wish), Actor.h, StudentWorld.h, and StudentWorld.cpp
 
 // ACTOR IMPLEMENTATION // 
-Actor::Actor(int id, int x, int y, Direction dir, double size, unsigned int depth)
-	: GraphObject(id, x, y, dir, size, depth), m_alive(true)
+
+Actor::Actor(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world)
+	: GraphObject(id, x, y, dir, size, depth), m_alive(true), m_World(world)
 {
 	setVisible(true);
 }
@@ -25,15 +26,15 @@ void Actor::setDead()
 	m_alive = false;
 }
 
-/*StudentWorld* Actor::getWorld()
+StudentWorld* Actor::getWorld() const
 {
 	return m_World;
-}*/
+}
 
 // DIRT IMPLEMENTATION //
 
-Dirt::Dirt(int x, int y)
-	: Actor(IID_DIRT, x, y, right, 0.25, 3)
+Dirt::Dirt(int x, int y, StudentWorld* world)
+	: Actor(IID_DIRT, x, y, right, 0.25, 3, world)
 {}
 
 Dirt::~Dirt()
@@ -45,22 +46,19 @@ void Dirt::doSomething()
 // FRACKMAN IMPLEMENTATION //
 
 FrackMan::FrackMan(StudentWorld* world)
-	: Actor(IID_PLAYER, 30, 60, right, 1, 0), m_hp(10), m_water(5), m_sCharge(true), m_gold(0), m_World(world)
+	: Actor(IID_PLAYER, 30, 60, right, 1, 0, world), m_hp(10), m_squirts(5), m_sCharges(1), m_gold(0)
 {}
 
 FrackMan::~FrackMan()
 {}
 
-StudentWorld* FrackMan::getWorld() const
-{
-	return m_World;
-}
-
 void FrackMan::doSomething()
 {
 	if (!isStillAlive())
 		return;
-	
+
+	getWorld()->destroyDirt(getX(), getY());
+
 	int dir;
 	if (getWorld()->getKey(dir) == true)
 	{
@@ -92,6 +90,25 @@ void FrackMan::doSomething()
 			break;
 		}
 	}
-
-	m_World->destroyDirt(getX(), getY());
 }
+
+int FrackMan::getHP() const
+{
+	return m_hp;
+}
+
+int FrackMan::getSquirts() const
+{
+	return m_squirts;
+}
+
+int FrackMan::getsCharges() const
+{
+	return m_sCharges;
+}
+
+int FrackMan::getGold() const
+{
+	return m_gold;
+}
+

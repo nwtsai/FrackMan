@@ -33,19 +33,39 @@ int StudentWorld::init()
 	fracker = new FrackMan(this); 
 	// m_actors.push_back(fracker);
 
-	for (int i = 0; i < 64; i++)
+	for (int r = 0; r < 64; r++)
 	{
-		for (int j = 0; j < 60; j++)
+		for (int c = 0; c < 60; c++)
 		{
-			if (i < 30 || i > 33)
+			if (r < 30 || r > 33)
 			{
-				Dirt* dirt = new Dirt(i, j);
+				Dirt* dirt = new Dirt(r, c, this);
 				m_dirt.push_back(dirt);
 			}
 		}
 	}
 
 	return GWSTATUS_CONTINUE_GAME;
+}
+
+int StudentWorld::move()
+{
+	//setGameStatText();
+	fracker->doSomething();
+	return GWSTATUS_CONTINUE_GAME;
+}
+
+void StudentWorld::cleanUp()
+{
+	for (int i = 0; i < m_actors.size(); i++)
+		delete m_actors.at(i);
+	m_actors.clear();
+
+	for (int k = 0; k < m_dirt.size(); k++)
+		delete m_dirt.at(k);
+	m_dirt.clear();
+
+	delete fracker;
 }
 
 void StudentWorld::destroyDirt(int x, int y)
@@ -66,17 +86,30 @@ void StudentWorld::destroyDirt(int x, int y)
 	}
 }
 
-int StudentWorld::move()
+int StudentWorld::min(int a, int b)
 {
-	fracker->doSomething();
-	return GWSTATUS_CONTINUE_GAME;
+	if (a < b)
+		return a;
+	else
+		return b;
 }
 
-void StudentWorld::cleanUp()
+int StudentWorld::max(int a, int b)
 {
-	for (int k = 0; k < m_dirt.size(); k++)
-		delete m_dirt.at(k);
-	m_dirt.clear();
+	if (a > b)
+		return a;
+	else
+		return b;
+}
 
-	delete fracker;
+int StudentWorld::randInt(int l, int h)
+{
+	if (h < l)
+		swap(h, l); 
+	return l + (rand() % (h - l + 1)); 
+}
+
+void StudentWorld::setDisplayText()
+{
+	
 }

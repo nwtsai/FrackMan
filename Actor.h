@@ -9,15 +9,15 @@ class StudentWorld;
 class Actor : public GraphObject
 {
 public:
-	Actor(int id, int x, int y, Direction dir, double size, unsigned int depth);
+	Actor(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world);
 	virtual ~Actor();
 	virtual void doSomething() = 0;
 	virtual bool isStillAlive();
 	virtual void setDead();
-
+	StudentWorld* getWorld() const;
 private:
-	
 	bool m_alive;
+	StudentWorld* m_World;
 };
 
 //////////////////////////////////////////////////////////////////
@@ -25,10 +25,12 @@ private:
 class Dirt : public Actor
 {
 public:
-	Dirt(int x, int y);
+	Dirt(int x, int y, StudentWorld* world);
 	virtual ~Dirt();
 	virtual void doSomething();
 };
+
+//////////////////////////////////////////////////////////////////
 
 class FrackMan : public Actor
 {
@@ -36,13 +38,15 @@ public:
 	FrackMan(StudentWorld* world);
 	~FrackMan();
 	virtual void doSomething();
-	StudentWorld* getWorld() const;
+	int getHP() const;
+	int getSquirts() const;
+	int getsCharges() const;
+	int getGold() const;
 private:
 	int m_hp;
-	int m_water;
-	bool m_sCharge;
+	int m_squirts;
+	int m_sCharges;
 	int m_gold;
-	StudentWorld* m_World;
 };
 
 //////////////////////////////////////////////////////////////////

@@ -22,11 +22,17 @@ public:
 	virtual int move();
 	virtual void cleanUp();
 	void destroyDirt(int x, int y);
+	int min(int a, int b);
+	int max(int a, int b);
+	int randInt(int l, int h);
+	void setDisplayText();
 private:
-	// int m_counter;
 	vector <Dirt*> m_dirt;
 	vector<Actor*> m_actors;
 	FrackMan* fracker;
+	int m_score;
+	int m_level;
+	int m_barrelsLeft;
 };
 
 #endif // STUDENTWORLD_H_
