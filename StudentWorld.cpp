@@ -6,13 +6,13 @@
 
 using namespace std;
 
-/*GameWorld* createStudentWorld(string assetDir)
+GameWorld* createStudentWorld(string assetDir)
 {
 	return new StudentWorld(assetDir);
-}*/
+}
 
-StudentWorld::StudentWorld()
-	: m_counter(0)
+StudentWorld::StudentWorld(std::string assetDir)
+	: GameWorld(assetDir)
 {}
 
 StudentWorld::~StudentWorld()
@@ -20,26 +20,63 @@ StudentWorld::~StudentWorld()
 	for (int i = 0; i < m_actors.size(); i++)
 		delete m_actors.at(i);
 	m_actors.clear();
+
+	for (int k = 0; k < m_dirt.size(); k++)
+		delete m_dirt.at(k);
+	m_dirt.clear();
+
+	delete fracker;
 }
 
 int StudentWorld::init()
 {
-	FrackMan* fracker = new FrackMan(this); //create the player and put it into the vector
-	m_actors.push_back(fracker);
+	fracker = new FrackMan(this); 
+	// m_actors.push_back(fracker);
 
+	for (int i = 0; i < 64; i++)
+	{
+		for (int j = 0; j < 60; j++)
+		{
+			if (i < 30 || i > 33)
+			{
+				Dirt* dirt = new Dirt(i, j);
+				m_dirt.push_back(dirt);
+			}
+		}
+	}
 
-	// return GWSTATUS_CONTINUE_GAME;
+	return GWSTATUS_CONTINUE_GAME;
+}
+
+void StudentWorld::destroyDirt(int x, int y)
+{
+	vector<Dirt*>::iterator p = m_dirt.begin();
+	while (p != m_dirt.end())
+	{
+		if ((*p)->getX() - x >= 0 && (*p)->getX() - x < 4 && (*p)->getY() - y >= 0 && (*p)->getY() - y < 4)
+		{
+			vector<Dirt*>::iterator temp = p;
+			delete *p;
+			p = m_dirt.erase(temp);
+		}
+		else
+		{
+			p++;
+		}
+	}
 }
 
 int StudentWorld::move()
 {
-	// This code is here merely to allow the game to build, run, and terminate after you hit enter a few times.
-	// Notice that the return value GWSTATUS_PLAYER_DIED will cause our framework to end the current level.
-	decLives();
-	return GWSTATUS_PLAYER_DIED;
+	fracker->doSomething();
+	return GWSTATUS_CONTINUE_GAME;
 }
 
 void StudentWorld::cleanUp()
 {
-}
+	for (int k = 0; k < m_dirt.size(); k++)
+		delete m_dirt.at(k);
+	m_dirt.clear();
 
+	delete fracker;
+}

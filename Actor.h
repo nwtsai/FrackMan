@@ -24,6 +24,7 @@ private:
 
 class Dirt : public Actor
 {
+public:
 	Dirt(int x, int y);
 	virtual ~Dirt();
 	virtual void doSomething();
@@ -42,7 +43,6 @@ private:
 	bool m_sCharge;
 	int m_gold;
 	StudentWorld* m_World;
-
 };
 
 //////////////////////////////////////////////////////////////////

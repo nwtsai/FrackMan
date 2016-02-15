@@ -64,21 +64,34 @@ void FrackMan::doSomething()
 	int dir;
 	if (getWorld()->getKey(dir) == true)
 	{
-		// user hit a key this tick!
 		switch (dir)
 		{
 		case KEY_PRESS_LEFT:
-			moveTo(getX(), getY() - 1);
+			if (getDirection() != left)
+				setDirection(left);
+			else if (getX() - 1 >= 0)
+				moveTo(getX() - 1, getY());
 			break;
 		case KEY_PRESS_RIGHT:
-			moveTo(getX(), getY() + 1);
-			break;
-		case KEY_PRESS_UP:
+			if (getDirection() != right)
+				setDirection(right);
+			else if (getX() + 1 <= 60)
 			moveTo(getX() + 1, getY());
 			break;
+		case KEY_PRESS_UP:
+			if (getDirection() != up)
+				setDirection(up);
+			else if (getY() + 1 <= 60)
+			moveTo(getX(), getY() + 1);
+			break;
 		case KEY_PRESS_DOWN:
-			moveTo(getX() - 1, getY());
+			if (getDirection() != down)
+				setDirection(down);
+			else if (getY() - 1 >= 0)
+			moveTo(getX(), getY() - 1);
 			break;
 		}
 	}
+
+	m_World->destroyDirt(getX(), getY());
 }
