@@ -2,6 +2,7 @@
 #define ACTOR_H_
 
 #include "GraphObject.h"
+#include "GameController.h"
 
 class StudentWorld;
 
@@ -29,35 +30,39 @@ public:
 	virtual void doSomething();
 };
 
-// MOVEABLE OBJECTS DECLARATION //
+// MOVEABLE OBJECT DECLARATION //
 
-class MoveableObjects : public Actor
+class MoveableObject : public Actor
 {
 public:
-	MoveableObjects(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world);
-	virtual ~MoveableObjects();
+	MoveableObject(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world);
+	virtual ~MoveableObject();
 	virtual void doSomething() = 0;
 	StudentWorld* getWorld() const;
 private:
 	StudentWorld* m_World;
 };
 
-// STATIONARY OBJECTS DECLARATION //
+// STATIONARY OBJECT DECLARATION //
 
-class StationaryObjects : public Actor
+class FrackMan;
+
+class StationaryObject : public Actor
 {
 public:
-	StationaryObjects(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world);
-	virtual ~StationaryObjects();
+	StationaryObject(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world, FrackMan* fracker);
+	virtual ~StationaryObject();
 	virtual void doSomething() = 0;
 	StudentWorld* getWorld() const;
+	FrackMan* getFracker() const;
 private:
 	StudentWorld* m_World;
+	FrackMan* m_Fracker;
 };
 
 // FRACKMAN DECLARATION // 
 
-class FrackMan : public MoveableObjects
+class FrackMan : public MoveableObject
 {
 public:
 	FrackMan(StudentWorld* world);
@@ -67,10 +72,10 @@ public:
 	int getSquirts() const;
 	int getsCharges() const;
 	int getGold() const;
-	void setHP(int hp);
-	void setSquirts(int squirts);
-	void setsCharges(int charges);
-	void setGold(int gold);
+	void addHP();
+	void addSquirts();
+	void addCharges();
+	void addGold();
 private:
 	int m_hp;
 	int m_squirts;
@@ -80,7 +85,7 @@ private:
 
 // BOULDER DECLARATION //
 
-class Boulder : public MoveableObjects
+class Boulder : public MoveableObject
 {
 public:
 	Boulder(int x, int y, StudentWorld* world);
@@ -94,26 +99,40 @@ private:
 
 // SQUIRT DECLARATION //
 
-class Squirt : public StationaryObjects
+class Squirt : public StationaryObject
 {
 public:
-	Squirt(int x, int y, Direction dir, StudentWorld* world);
+	Squirt(int x, int y, Direction dir, StudentWorld* world, FrackMan* fracker);
 	~Squirt();
 	virtual void doSomething();
 private:
 	int m_distanceTrav;
 };
 
-// BARRELS DECLARATION //
+// Barrel DECLARATION //
 
-class Barrels : public StationaryObjects
+class Barrel : public StationaryObject
 {
 public:
-	Barrels(int x, int y, StudentWorld* world);
-	~Barrels();
+	Barrel(int x, int y, StudentWorld* world, FrackMan* fracker);
+	~Barrel();
 	virtual void doSomething();
 private:
 
+};
+
+// GOLD NUGGET DECLARATION //
+
+class GoldNugget : public StationaryObject
+{
+public:
+	GoldNugget(int x, int y, StudentWorld* world, FrackMan* fracker);
+	~GoldNugget();
+	virtual void doSomething();
+private:
+	bool canFrackManGet;
+	bool isPermanentState;
+	int m_tickLife;
 };
 
 //////////////////////////////////////////////////////////////////

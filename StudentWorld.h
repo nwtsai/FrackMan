@@ -31,8 +31,11 @@ public:
 	int randInt(int l, int h);
 	void setDisplayText();
 	string formatDisplayText(int score, int level, int lives, int health, int squirts, int gold, int sonar, int barrelsLeft);
+	bool isWithinRadius(int x1, int y1, int x2, int y2, double r);
+	void reduceBarrels();
 private:
-	vector <Dirt*> m_dirt;
+	// vector <Dirt*> m_dirt;
+	Dirt* m_dirt[64][60];
 	vector<Actor*> m_actors;
 	FrackMan* fracker;
 	int m_barrelsLeft;

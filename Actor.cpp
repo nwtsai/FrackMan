@@ -1,5 +1,6 @@
 #include "Actor.h"
 #include "StudentWorld.h"
+#include "GameController.h"
 
 // Students:  Add code to this file (if you wish), Actor.h, StudentWorld.h, and StudentWorld.cpp
 
@@ -8,7 +9,7 @@
 Actor::Actor(int id, int x, int y, Direction dir, double size, unsigned int depth)
 	: GraphObject(id, x, y, dir, size, depth), m_alive(true)
 {
-	setVisible(true);
+	// setVisible(true);
 }
 
 Actor::~Actor()
@@ -31,7 +32,9 @@ void Actor::setDead()
 
 Dirt::Dirt(int x, int y)
 	: Actor(IID_DIRT, x, y, right, 0.25, 3)
-{}
+{
+	setVisible(true);
+}
 
 Dirt::~Dirt()
 {}
@@ -41,37 +44,44 @@ void Dirt::doSomething()
 
 // MOVEABLE OBJECTS IMPLEMENTATION
 
-MoveableObjects::MoveableObjects(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world)
+MoveableObject::MoveableObject(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world)
 	: Actor(id, x, y, dir, size, depth), m_World(world)
 {}
 
-MoveableObjects::~MoveableObjects()
+MoveableObject::~MoveableObject()
 {}
 
-StudentWorld* MoveableObjects::getWorld() const
+StudentWorld* MoveableObject::getWorld() const
 {
 	return m_World;
 }
 
 // STATIONARY OBJECTS IMPLEMENTATION //
 
-StationaryObjects::StationaryObjects(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world)
-	: Actor(id, x, y, dir, size, depth), m_World(world)
+StationaryObject::StationaryObject(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world, FrackMan* fracker)
+	: Actor(id, x, y, dir, size, depth), m_World(world), m_Fracker(fracker)
 {}
 
-StationaryObjects::~StationaryObjects()
+StationaryObject::~StationaryObject()
 {}
 
-StudentWorld* StationaryObjects::getWorld() const
+StudentWorld* StationaryObject::getWorld() const
 {
 	return m_World;
+}
+
+FrackMan* StationaryObject::getFracker() const
+{
+	return m_Fracker;
 }
 
 // FRACKMAN IMPLEMENTATION //
 
 FrackMan::FrackMan(StudentWorld* world)
-	: MoveableObjects(IID_PLAYER, 30, 60, right, 1, 0, world), m_hp(10), m_squirts(5), m_sCharges(1), m_gold(0)
-{}
+	: MoveableObject(IID_PLAYER, 30, 60, right, 1, 0, world), m_hp(10), m_squirts(5), m_sCharges(1), m_gold(0)
+{
+	setVisible(true);
+}
 
 FrackMan::~FrackMan()
 {}
@@ -118,24 +128,32 @@ void FrackMan::doSomething()
 				setDirection(left);
 			else if (getX() - 1 >= 0)
 				moveTo(getX() - 1, getY());
+			else
+				moveTo(getX(), getY());
 			break;
 		case KEY_PRESS_RIGHT:
 			if (getDirection() != right)
 				setDirection(right);
 			else if (getX() + 1 <= 60)
-			moveTo(getX() + 1, getY());
+				moveTo(getX() + 1, getY());
+			else
+				moveTo(getX(), getY());
 			break;
 		case KEY_PRESS_UP:
 			if (getDirection() != up)
 				setDirection(up);
 			else if (getY() + 1 <= 60)
-			moveTo(getX(), getY() + 1);
+				moveTo(getX(), getY() + 1);
+			else
+				moveTo(getX(), getY());
 			break;
 		case KEY_PRESS_DOWN:
 			if (getDirection() != down)
 				setDirection(down);
 			else if (getY() - 1 >= 0)
-			moveTo(getX(), getY() - 1);
+				moveTo(getX(), getY() - 1);
+			else
+				moveTo(getX(), getY());
 			break;
 		}
 	}
@@ -161,31 +179,33 @@ int FrackMan::getGold() const
 	return m_gold;
 }
 
-void FrackMan::setHP(int hp) 
+void FrackMan::addHP() 
 {
-	m_hp = hp;
+	m_hp++;
 }
 
-void FrackMan::setSquirts(int squirts) 
+void FrackMan::addSquirts() 
 {
-	m_squirts = squirts;
+	m_squirts++;
 }
 
-void FrackMan::setsCharges(int charges) 
+void FrackMan::addCharges() 
 {
-	m_sCharges = charges;
+	m_sCharges++;
 }
 
-void FrackMan::setGold(int gold) 
+void FrackMan::addGold() 
 {
-	m_gold = gold;
+	m_gold++;
 }
 
 // BOULDER IMPLEMENTATION //
 
 Boulder::Boulder(int x, int y, StudentWorld* world)
-	: MoveableObjects(IID_BOULDER, x, y, down, 1.0, 1, world), m_state(0), m_counter(30)
-{}
+	: MoveableObject(IID_BOULDER, x, y, down, 1.0, 1, world), m_state(0), m_counter(30)
+{
+	setVisible(true);
+}
 
 Boulder::~Boulder()
 {}
@@ -237,9 +257,11 @@ void Boulder::doSomething()
 
 // SQUIRT IMPLEMENTATION //
 
-Squirt::Squirt(int x, int y, Direction dir, StudentWorld* world)
-	: StationaryObjects(IID_WATER_SPURT, x, y, dir, 1.0, 1, world), m_distanceTrav(0)
-{}
+Squirt::Squirt(int x, int y, Direction dir, StudentWorld* world, FrackMan* fracker)
+	: StationaryObject(IID_WATER_SPURT, x, y, dir, 1.0, 1, world, fracker), m_distanceTrav(0)
+{
+	setVisible(true);
+}
 
 Squirt::~Squirt()
 {}
@@ -263,19 +285,78 @@ void Squirt::doSomething()
 	}
 }
 
-// BARRELS IMPLEMENTATION //
+// Barrel IMPLEMENTATION //
 
-Barrels::Barrels(int x, int y, StudentWorld* world)
-	: StationaryObjects(IID_BARREL, x, y, right, 1.0, 2, world) 
+Barrel::Barrel(int x, int y, StudentWorld* world, FrackMan* fracker)
+	: StationaryObject(IID_BARREL, x, y, right, 1.0, 2, world, fracker) 
 {}
 
-Barrels::~Barrels()
+Barrel::~Barrel()
 {}
 
-void Barrels::doSomething()
+void Barrel::doSomething()
 {
 	if (!isStillAlive())
 		return;
 
+	if (isVisible() == false && getWorld()->isWithinRadius(getX(), getY(), getFracker()->getX(), getFracker()->getY(), 4))
+	{
+		setVisible(true);
+		return;
+	}
+	else if (getWorld()->isWithinRadius(getX(), getY(), getFracker()->getX(), getFracker()->getY(), 3))
+	{
+		setDead();
+		GameController::getInstance().playSound(SOUND_FOUND_OIL);
+		getWorld()->increaseScore(1000);
+		getWorld()->reduceBarrels();
+	}
+}
 
+// GOLD NUGGET IMPLEMENTATION //
+
+GoldNugget::GoldNugget(int x, int y, StudentWorld* world, FrackMan* fracker)
+	: StationaryObject(IID_GOLD, x, y, right, 1.0, 2, world, fracker), canFrackManGet(true), isPermanentState(true), m_tickLife(300)
+{
+	// permament state depends on if it can be picked up by fracker or protester
+	// can be picked up depends on if fracker set down the gold or not
+}
+
+GoldNugget::~GoldNugget()
+{}
+
+void GoldNugget::doSomething()
+{
+	if (!isStillAlive())
+		return;
+
+	if (!isVisible() && getWorld()->isWithinRadius(getX(), getY(), getFracker()->getX(), getFracker()->getY(), 4.0))
+	{
+		setVisible(true);
+		return;
+	}
+	else if (canFrackManGet == true && getWorld()->isWithinRadius(getX(), getY(), getFracker()->getX(), getFracker()->getY(), 3.0))
+	{
+		setDead();
+		GameController::getInstance().playSound(SOUND_GOT_GOODIE);
+		getWorld()->increaseScore(10);
+		getFracker()->addGold();
+	}
+	else if (canFrackManGet == false) // and if it is within 3 units of a Protester
+	{
+		setDead();
+		GameController::getInstance().playSound(SOUND_PROTESTER_FOUND_GOLD);
+		// The Gold Nugget must tell the Protester object to be bribed and act accordingly
+		getWorld()->increaseScore(25);
+	}
+
+	if (!isPermanentState)
+	{
+		if (m_tickLife == 0)
+		{
+			setDead();
+			return;
+		}
+		m_tickLife--;
+	}
 }
