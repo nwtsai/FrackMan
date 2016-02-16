@@ -94,7 +94,7 @@ public:
 	bool isAnyDirtUnderBoulder();
 private:
 	int m_state; // 0 stable | 1 waiting | -1 falling
-	int m_counter;
+	int m_tickLife;
 };
 
 // SQUIRT DECLARATION //
@@ -132,6 +132,30 @@ public:
 private:
 	bool canFrackManGet;
 	bool isPermanentState;
+	int m_tickLife;
+};
+
+// SONAR KIT DECLARATION //
+
+class SonarKit : public StationaryObject
+{
+public:
+	SonarKit(int x, int y, StudentWorld* world, FrackMan* fracker);
+	~SonarKit();
+	virtual void doSomething();
+private:
+	int m_tickLife;
+};
+
+// WATER POOL DECLARATION // 
+
+class WaterPool : public StationaryObject
+{
+public:
+	WaterPool(int x, int y, StudentWorld* world, FrackMan* fracker);
+	~WaterPool();
+	virtual void doSomething();
+private:
 	int m_tickLife;
 };
 

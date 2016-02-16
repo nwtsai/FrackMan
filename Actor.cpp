@@ -92,7 +92,7 @@ void FrackMan::doSomething()
 		return;
 
 	getWorld()->destroyDirt(getX(), getY());
-
+	
 	int dir;
 	if (getWorld()->getKey(dir) == true)
 	{
@@ -186,7 +186,7 @@ void FrackMan::addHP()
 
 void FrackMan::addSquirts() 
 {
-	m_squirts++;
+	m_squirts += 5;
 }
 
 void FrackMan::addCharges() 
@@ -202,9 +202,10 @@ void FrackMan::addGold()
 // BOULDER IMPLEMENTATION //
 
 Boulder::Boulder(int x, int y, StudentWorld* world)
-	: MoveableObject(IID_BOULDER, x, y, down, 1.0, 1, world), m_state(0), m_counter(30)
+	: MoveableObject(IID_BOULDER, x, y, down, 1.0, 1, world), m_state(0), m_tickLife(30)
 {
 	setVisible(true);
+	getWorld()->destroyDirt(x, y);
 }
 
 Boulder::~Boulder()
@@ -236,12 +237,12 @@ void Boulder::doSomething()
 	// if Boulder is in a waiting state
 	else if (m_state == 1)
 	{
-		if (m_counter == 0)
+		if (m_tickLife == 0)
 		{
 			m_state = -1;
 			// GameController::getInstance().playSound(SOUND_FALLING_ROCK);
 		}
-		m_counter--;
+		m_tickLife--;
 	}
 	// if Boulder is in a falling state
 	else 
@@ -359,4 +360,70 @@ void GoldNugget::doSomething()
 		}
 		m_tickLife--;
 	}
+}
+
+// SONAR KIT IMPLEMENTATION //
+
+SonarKit::SonarKit(int x, int y, StudentWorld* world, FrackMan* fracker)
+	: StationaryObject(IID_SONAR, x, y, right, 1.0, 2, world, fracker)
+{
+	m_tickLife = getWorld()->max(100, 300 - 10 * getWorld()->getLevel());
+	setVisible(true);
+}
+
+SonarKit::~SonarKit()
+{}
+
+void SonarKit::doSomething()
+{
+	if (!isStillAlive())
+		return;
+
+	if (getWorld()->isWithinRadius(getX(), getY(), getFracker()->getX(), getFracker()->getY(), 3.0))
+	{
+		setDead();
+		GameController::getInstance().playSound(SOUND_GOT_GOODIE);
+		getFracker()->addCharges();
+		getWorld()->increaseScore(75);
+	}
+
+	if (m_tickLife == 0)
+	{
+		setDead();
+		return;
+	}
+	m_tickLife--;
+}
+
+// WATER POOL IMPLEMENTATION //
+
+WaterPool::WaterPool(int x, int y, StudentWorld* world, FrackMan* fracker)
+	: StationaryObject(IID_WATER_POOL, x, y, right, 1.0, 2, world, fracker)
+{
+	m_tickLife = getWorld()->max(100, 300 - 10 * getWorld()->getLevel());
+	setVisible(true);
+}
+
+WaterPool::~WaterPool()
+{}
+
+void WaterPool::doSomething()
+{
+	if (!isStillAlive())
+		return;
+
+	if (getWorld()->isWithinRadius(getX(), getY(), getFracker()->getX(), getFracker()->getY(), 3.0))
+	{
+		setDead();
+		GameController::getInstance().playSound(SOUND_GOT_GOODIE);
+		getFracker()->addSquirts();
+		getWorld()->increaseScore(100);
+	}
+
+	if (m_tickLife == 0)
+	{
+		setDead();
+		return;
+	}
+	m_tickLife--;
 }

@@ -17,7 +17,15 @@ GameWorld* createStudentWorld(string assetDir)
 
 StudentWorld::StudentWorld(std::string assetDir)
 	: GameWorld(assetDir), m_barrelsLeft(1)
-{}
+{
+	for (int i = 0; i < 64; i++)
+	{
+		for (int j = 0; j < 60; j++)
+		{
+			m_dirt[i][j] = nullptr;
+		}
+	}
+}
 
 StudentWorld::~StudentWorld()
 {
@@ -25,7 +33,7 @@ StudentWorld::~StudentWorld()
 		delete m_actors.at(i);
 	m_actors.clear();
 
-	/*for (int k = 0; k < m_dirt.size(); k++)
+	/*for (int k = 0; k < m_dirt.size(); k++) 
 		delete m_dirt.at(k);
 	m_dirt.clear();*/
 
@@ -34,7 +42,11 @@ StudentWorld::~StudentWorld()
 		for (int y = 0; y < 60; y++)
 		{
 			if (m_dirt[x][y] != nullptr)
+			{
 				delete m_dirt[x][y];
+				m_dirt[x][y] = nullptr;
+			}
+				
 		}
 	}
 
@@ -43,17 +55,6 @@ StudentWorld::~StudentWorld()
 
 int StudentWorld::init()
 {
-	fracker = new FrackMan(this); 
-
-	Boulder* B = new Boulder(5, 5, this);
-	m_actors.push_back(B);
-
-	Barrel* barrel = new Barrel(15, 50, this, fracker);
-	m_actors.push_back(barrel);
-
-	GoldNugget* gold = new GoldNugget(15, 30, this, fracker);
-	m_actors.push_back(gold);
-
 	for (int r = 0; r < 64; r++)
 	{
 		for (int c = 0; c < 60; c++)
@@ -68,6 +69,23 @@ int StudentWorld::init()
 			}
 		}
 	}
+
+	fracker = new FrackMan(this);
+
+	Boulder* B = new Boulder(5, 5, this);
+	m_actors.push_back(B);
+
+	Barrel* barrel = new Barrel(15, 50, this, fracker);
+	m_actors.push_back(barrel);
+
+	GoldNugget* gold = new GoldNugget(15, 30, this, fracker);
+	m_actors.push_back(gold);
+
+	SonarKit* sk = new SonarKit(15, 40, this, fracker);
+	m_actors.push_back(sk);
+
+	WaterPool* water = new WaterPool(5, 40, this, fracker);
+	m_actors.push_back(water);
 
 	return GWSTATUS_CONTINUE_GAME;
 }
@@ -129,7 +147,10 @@ void StudentWorld::cleanUp()
 		for (int y = 0; y < 60; y++)
 		{
 			if (m_dirt[x][y] != nullptr)
+			{
 				delete m_dirt[x][y];
+				m_dirt[x][y] = nullptr;
+			}
 		}
 	}
 
@@ -182,7 +203,7 @@ void StudentWorld::destroyDirt(int x, int y)
 			if (m_dirt[i][j] != nullptr && j < 60 && isThereDirtHere(i, j))
 			{
 				m_dirt[i][j]->setVisible(false);
-				GameController::getInstance().playSound(SOUND_DIG);
+				playSound(SOUND_DIG);
 				delete m_dirt[i][j];
 				m_dirt[i][j] = nullptr;
 			}
