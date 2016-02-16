@@ -55,6 +55,7 @@ StudentWorld::~StudentWorld()
 
 int StudentWorld::init()
 {
+	// initialize the dirt
 	for (int r = 0; r < 64; r++)
 	{
 		for (int c = 0; c < 60; c++)
@@ -70,18 +71,19 @@ int StudentWorld::init()
 		}
 	}
 
+	// initialize the FrackMan
 	fracker = new FrackMan(this);
 
-	Boulder* B = new Boulder(5, 5, this);
-	m_actors.push_back(B);
+	// initialize the Boulders
+	addBoulders();
 
-	Barrel* barrel = new Barrel(15, 50, this, fracker);
-	m_actors.push_back(barrel);
+	// initialize the Gold Nuggets
+	addNuggets();
 
-	GoldNugget* gold = new GoldNugget(15, 30, this, fracker);
-	m_actors.push_back(gold);
+	// initialize the Barrels
+	addBarrels();
 
-	SonarKit* sk = new SonarKit(15, 40, this, fracker);
+	SonarKit* sk = new SonarKit(0, 60, this, fracker);
 	m_actors.push_back(sk);
 
 	WaterPool* water = new WaterPool(5, 40, this, fracker);
@@ -92,9 +94,11 @@ int StudentWorld::init()
 
 int StudentWorld::move()
 {
+	// update status text
 	setDisplayText();
-	fracker->doSomething();
 
+	// ask every object to do something
+	fracker->doSomething();
 	for (int i = 0; i < m_actors.size(); i++)
 	{
 		if (m_actors.at(i)->isStillAlive())
@@ -103,7 +107,6 @@ int StudentWorld::move()
 
 			if (!fracker->isStillAlive())
 			{
-				fracker->setDead();
 				return GWSTATUS_PLAYER_DIED;
 			}
 
@@ -116,18 +119,7 @@ int StudentWorld::move()
 	}
 
 	// delete actors that need to be deleted and remove them from the vector
-	// below is just following page 19 of the spec's pseudocode
-	if (!fracker->isStillAlive())
-	{
-		fracker->setDead();
-		return GWSTATUS_PLAYER_DIED;
-	}
-
-	if (m_barrelsLeft == 0)
-	{
-		GameController::getInstance().playSound(SOUND_FINISHED_LEVEL);
-		return GWSTATUS_FINISHED_LEVEL;
-	}
+	removeDeadObjects();
 
 	return GWSTATUS_CONTINUE_GAME;
 }
@@ -214,6 +206,82 @@ void StudentWorld::destroyDirt(int x, int y)
 void StudentWorld::insertSquirt(int x, int y, int dir)
 {
 	// Squirt* sqr = new Squirt();
+}
+
+void StudentWorld::removeDeadObjects()
+{
+	vector<Actor*>::iterator p = m_actors.begin();
+	while (p != m_actors.end())
+	{
+		if ((*p)->isStillAlive() == false)
+		{
+			vector<Actor*>::iterator temp = p;
+			delete *p;
+			p = m_actors.erase(temp);
+		}
+		else
+		{
+			p++;
+		}
+	}
+}
+
+void StudentWorld::addBoulders()
+{
+	int numBoulders = max(getLevel() / 2 + 2, 6);
+	for (int boul = 0; boul < numBoulders; boul++)
+	{
+		int randX = randInt(0, 60);
+		int randY = randInt(20, 56);
+		while (randX >= 26 && randX <= 33)
+		{
+			randX = randInt(0, 60);
+		}
+
+		m_actors.push_back(new Boulder(randX, randY, this));
+	}
+}
+
+void StudentWorld::addNuggets()
+{
+	int numNugs = min(5 - getLevel() / 2, 2);
+	for (int nugs = 0; nugs < numNugs; nugs++)
+	{
+		int randX = randInt(0, 60);
+		int randY = randInt(20, 56);
+		while (randX >= 26 && randX <= 33)
+		{
+			randX = randInt(0, 60);
+		}
+
+		m_actors.push_back(new GoldNugget(randX, randY, this, fracker));
+	}
+}
+
+void StudentWorld::addBarrels()
+{
+	int numBarrels = min(2 + getLevel(), 20);
+	for (int barrels = 0; barrels < numBarrels; barrels++)
+	{
+		int randX = randInt(0, 60);
+		int randY = randInt(20, 56);
+		while (randX >= 26 && randX <= 33)
+		{
+			randX = randInt(0, 60);
+		}
+
+		m_actors.push_back(new Barrel(randX, randY, this, fracker));
+	}
+}
+
+void StudentWorld::addSonarKits()
+{
+	
+}
+
+void StudentWorld::addWaterPools()
+{
+	
 }
 
 int StudentWorld::min(int a, int b)

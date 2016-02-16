@@ -26,6 +26,14 @@ public:
 	bool isThereDirtHere(int x, int y);
 	void destroyDirt(int x, int y);
 	void insertSquirt(int x, int y, int dir);
+	void removeDeadObjects();
+
+	void addBoulders();
+	void addNuggets();
+	void addBarrels();
+	void addSonarKits();
+	void addWaterPools();
+	
 	int min(int a, int b);
 	int max(int a, int b);
 	int randInt(int l, int h);
