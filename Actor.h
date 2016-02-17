@@ -126,7 +126,7 @@ private:
 class GoldNugget : public StationaryObject
 {
 public:
-	GoldNugget(int x, int y, StudentWorld* world, FrackMan* fracker);
+	GoldNugget(int x, int y, bool isPerm, StudentWorld* world, FrackMan* fracker);
 	~GoldNugget();
 	virtual void doSomething();
 private:

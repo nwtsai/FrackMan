@@ -78,7 +78,7 @@ FrackMan* StationaryObject::getFracker() const
 // FRACKMAN IMPLEMENTATION //
 
 FrackMan::FrackMan(StudentWorld* world)
-	: MoveableObject(IID_PLAYER, 30, 60, right, 1, 0, world), m_hp(10), m_squirts(5), m_sCharges(1), m_gold(0)
+	: MoveableObject(IID_PLAYER, 30, 60, right, 1.0, 0, world), m_hp(10), m_squirts(5), m_sCharges(1), m_gold(0)
 {
 	setVisible(true);
 }
@@ -119,7 +119,7 @@ void FrackMan::doSomething()
 		case KEY_PRESS_TAB:
 			if (m_gold > 0)
 			{
-				// getWorld()->insertGold(getX(), getY());
+				getWorld()->dropNugget(getX(), getY());
 				m_gold--;
 			}
 			break;
@@ -290,7 +290,9 @@ void Squirt::doSomething()
 
 Barrel::Barrel(int x, int y, StudentWorld* world, FrackMan* fracker)
 	: StationaryObject(IID_BARREL, x, y, right, 1.0, 2, world, fracker) 
-{}
+{
+	// setVisible(true); // for testing only, delete after
+}
 
 Barrel::~Barrel()
 {}
@@ -316,11 +318,19 @@ void Barrel::doSomething()
 
 // GOLD NUGGET IMPLEMENTATION //
 
-GoldNugget::GoldNugget(int x, int y, StudentWorld* world, FrackMan* fracker)
-	: StationaryObject(IID_GOLD, x, y, right, 1.0, 2, world, fracker), canFrackManGet(true), isPermanentState(true), m_tickLife(300)
+GoldNugget::GoldNugget(int x, int y, bool isPerm, StudentWorld* world, FrackMan* fracker)
+	: StationaryObject(IID_GOLD, x, y, right, 1.0, 2, world, fracker), isPermanentState(isPerm), m_tickLife(300)
 {
-	// permament state depends on if it can be picked up by fracker or protester
-	// can be picked up depends on if fracker set down the gold or not
+	if (isPermanentState)
+	{
+		setVisible(false);
+		canFrackManGet = true;
+	}
+	else
+	{
+		setVisible(true);
+		canFrackManGet = false;
+	}
 }
 
 GoldNugget::~GoldNugget()

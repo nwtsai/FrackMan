@@ -23,6 +23,7 @@ public:
 	virtual int init();
 	virtual int move();
 	virtual void cleanUp();
+	virtual bool isCollidingWith(int x, int y, Actor* obj);
 	bool isThereDirtHere(int x, int y);
 	void destroyDirt(int x, int y);
 	void insertSquirt(int x, int y, int dir);
@@ -30,6 +31,7 @@ public:
 
 	void addBoulders();
 	void addNuggets();
+	void dropNugget(int x, int y);
 	void addBarrels();
 	void addSonarKits();
 	void addWaterPools();

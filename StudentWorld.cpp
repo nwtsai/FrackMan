@@ -16,7 +16,7 @@ GameWorld* createStudentWorld(string assetDir)
 }
 
 StudentWorld::StudentWorld(std::string assetDir)
-	: GameWorld(assetDir), m_barrelsLeft(1)
+	: GameWorld(assetDir)
 {
 	for (int i = 0; i < 64; i++)
 	{
@@ -25,6 +25,8 @@ StudentWorld::StudentWorld(std::string assetDir)
 			m_dirt[i][j] = nullptr;
 		}
 	}
+	m_barrelsLeft = min(2 + getLevel(), 20);
+	fracker = nullptr;
 }
 
 StudentWorld::~StudentWorld()
@@ -149,6 +151,11 @@ void StudentWorld::cleanUp()
 	delete fracker;
 }
 
+bool StudentWorld::isCollidingWith(int x, int y, Actor* obj)
+{
+	return isWithinRadius(x, y, obj->getX(), obj->getY(), 6.0);
+}
+
 bool StudentWorld::isThereDirtHere(int x, int y)
 {
 	/*vector<Dirt*>::iterator p = m_dirt.begin();
@@ -233,9 +240,28 @@ void StudentWorld::addBoulders()
 	{
 		int randX = randInt(0, 60);
 		int randY = randInt(20, 56);
-		while (randX >= 26 && randX <= 33)
+		
+		/*for (int a = 0; a < m_actors.size(); a++)
 		{
-			randX = randInt(0, 60);
+			while (isCollidingWith(randX, randY, m_actors.at(a)) || (randX >= 26 && randX <= 33))
+			{
+				randX = randInt(0, 60);
+				randY = randInt(20, 56);
+			}
+		}*/
+
+		vector<Actor*>::iterator p = m_actors.begin();
+		while (p != m_actors.end())
+		{
+			if (isCollidingWith(randX, randY, *p) || (randX >= 26 && randX <= 33))
+			{
+				randX = randInt(0, 60);
+				randY = randInt(20, 56);
+			}
+			else
+			{
+				p++;
+			}
 		}
 
 		m_actors.push_back(new Boulder(randX, randY, this));
@@ -249,13 +275,28 @@ void StudentWorld::addNuggets()
 	{
 		int randX = randInt(0, 60);
 		int randY = randInt(20, 56);
-		while (randX >= 26 && randX <= 33)
+
+		vector<Actor*>::iterator p = m_actors.begin();
+		while (p != m_actors.end())
 		{
-			randX = randInt(0, 60);
+			if (isCollidingWith(randX, randY, *p) || (randX >= 26 && randX <= 33))
+			{
+				randX = randInt(0, 60);
+				randY = randInt(20, 56);
+			}
+			else
+			{
+				p++;
+			}
 		}
 
-		m_actors.push_back(new GoldNugget(randX, randY, this, fracker));
+		m_actors.push_back(new GoldNugget(randX, randY, true, this, fracker));
 	}
+}
+
+void StudentWorld::dropNugget(int x, int y)
+{
+	m_actors.push_back(new GoldNugget(x, y, false, this, fracker));
 }
 
 void StudentWorld::addBarrels()
@@ -265,9 +306,19 @@ void StudentWorld::addBarrels()
 	{
 		int randX = randInt(0, 60);
 		int randY = randInt(20, 56);
-		while (randX >= 26 && randX <= 33)
+
+		vector<Actor*>::iterator p = m_actors.begin();
+		while (p != m_actors.end())
 		{
-			randX = randInt(0, 60);
+			if (isCollidingWith(randX, randY, *p) || (randX >= 26 && randX <= 33))
+			{
+				randX = randInt(0, 60);
+				randY = randInt(20, 56);
+			}
+			else
+			{
+				p++;
+			}
 		}
 
 		m_actors.push_back(new Barrel(randX, randY, this, fracker));
@@ -326,7 +377,7 @@ string StudentWorld::formatDisplayText(int score, int level, int lives, int heal
 {
 	stringstream sa;
 	string scr = "Scr: ";
-	sa << setw(8) << setfill('0') << score;
+	sa << setw(6) << setfill('0') << score;
 	string a = sa.str();
 
 	stringstream sb;
