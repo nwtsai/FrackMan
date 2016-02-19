@@ -16,6 +16,7 @@ public:
 	virtual void doSomething() = 0;
 	virtual bool isStillAlive();
 	virtual void setDead();
+	virtual bool doesThisBlock();
 private:
 	bool m_alive;
 };
@@ -92,9 +93,14 @@ public:
 	~Boulder();
 	virtual void doSomething();
 	bool isAnyDirtUnderBoulder();
+	int getBoulderX();
+	int getBoulderY();
+	virtual bool doesThisBlock();
 private:
 	int m_state; // 0 stable | 1 waiting | -1 falling
 	int m_tickLife;
+	int m_x;
+	int m_y;
 };
 
 // SQUIRT DECLARATION //

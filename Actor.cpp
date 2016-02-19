@@ -28,6 +28,11 @@ void Actor::setDead()
 	setVisible(false);
 }
 
+bool Actor::doesThisBlock()
+{
+	return false;
+}
+
 // DIRT IMPLEMENTATION //
 
 Dirt::Dirt(int x, int y)
@@ -104,7 +109,7 @@ void FrackMan::doSomething()
 		case KEY_PRESS_SPACE:
 			if (m_squirts > 0)
 			{
-				// getWorld()->insertSquirt(getX(), getY(), dir);
+				getWorld()->insertSquirt(getX(), getY(), getDirection());
 				m_squirts--;
 			}
 			break;
@@ -112,7 +117,8 @@ void FrackMan::doSomething()
 		case 'Z':
 			if (m_sCharges > 0)
 			{
-				// getWorld()->insertsCharge(getX(), getY());
+				getWorld()->revealCloseObjects(getX(), getY());
+				GameController::getInstance().playSound(SOUND_SONAR);
 				m_sCharges--;
 			}
 			break;
@@ -126,6 +132,8 @@ void FrackMan::doSomething()
 		case KEY_PRESS_LEFT:
 			if (getDirection() != left)
 				setDirection(left);
+			else if (getWorld()->canMoveHere(getX() - 1, getY()) == false)
+				break;
 			else if (getX() - 1 >= 0)
 				moveTo(getX() - 1, getY());
 			else
@@ -134,6 +142,8 @@ void FrackMan::doSomething()
 		case KEY_PRESS_RIGHT:
 			if (getDirection() != right)
 				setDirection(right);
+			else if (getWorld()->canMoveHere(getX() + 1, getY()) == false)
+				break;
 			else if (getX() + 1 <= 60)
 				moveTo(getX() + 1, getY());
 			else
@@ -142,6 +152,8 @@ void FrackMan::doSomething()
 		case KEY_PRESS_UP:
 			if (getDirection() != up)
 				setDirection(up);
+			else if (getWorld()->canMoveHere(getX(), getY() + 1) == false)
+				break;
 			else if (getY() + 1 <= 60)
 				moveTo(getX(), getY() + 1);
 			else
@@ -150,6 +162,8 @@ void FrackMan::doSomething()
 		case KEY_PRESS_DOWN:
 			if (getDirection() != down)
 				setDirection(down);
+			else if (getWorld()->canMoveHere(getX(), getY() - 1) == false)
+				break;
 			else if (getY() - 1 >= 0)
 				moveTo(getX(), getY() - 1);
 			else
@@ -202,7 +216,7 @@ void FrackMan::addGold()
 // BOULDER IMPLEMENTATION //
 
 Boulder::Boulder(int x, int y, StudentWorld* world)
-	: MoveableObject(IID_BOULDER, x, y, down, 1.0, 1, world), m_state(0), m_tickLife(30)
+	: MoveableObject(IID_BOULDER, x, y, down, 1.0, 1, world), m_state(0), m_tickLife(30), m_x(getX()), m_y(getY())
 {
 	setVisible(true);
 	getWorld()->destroyDirt(x, y);
@@ -248,12 +262,34 @@ void Boulder::doSomething()
 	else 
 	{
 		if (getY() > 0 && !isAnyDirtUnderBoulder())
+		{
 			moveTo(getX(), getY() - 1);
+			if (getWorld()->isCollidingWith(getX(), getY(), getWorld()->getFrack()))
+			{
+				getWorld()->getFrack()->setDead();
+				setDead();
+			}
+		}
 		else
 			setDead();
 	}
 
 	return;
+}
+
+int Boulder::getBoulderX()
+{
+	return m_x;
+}
+
+int Boulder::getBoulderY()
+{
+	return m_y;
+}
+
+bool Boulder::doesThisBlock()
+{
+	return true;
 }
 
 // SQUIRT IMPLEMENTATION //
@@ -275,15 +311,42 @@ void Squirt::doSomething()
 	Protester(s), and then immediately set its state to dead, so it can be removed from
 	the oil field at the end of the tick
 	*/
-
-	if (isStillAlive() && m_distanceTrav <= 4)
+	if (!isStillAlive())
 	{
-		m_distanceTrav++;
+		return;
 	}
-	else
+	else if (m_distanceTrav < 4)
+	{
+		if (getDirection() == right && getX() + 1 <= 60 && getWorld()->isThereDirtHere(getX() + 4, getY()) == false)
+		{
+			moveTo(getX() + 1, getY());
+			m_distanceTrav++;
+		}
+		else if (getDirection() == left && getX() - 1 >= 0 && getWorld()->isThereDirtHere(getX() - 4, getY()) == false)
+		{
+			moveTo(getX() - 1, getY());
+			m_distanceTrav++;
+		}
+		else if (getDirection() == up &&  getY() + 1 <= 60 && getWorld()->isThereDirtHere(getX(), getY() + 4) == false)
+		{
+			moveTo(getX(), getY() + 1);
+			m_distanceTrav++;
+		}
+		else if (getDirection() == down && getY() - 1 >= 0 && getWorld()->isThereDirtHere(getX(), getY() - 4) == false)
+		{
+			moveTo(getX(), getY() - 1);
+			m_distanceTrav++;
+		}
+		else
+		{
+			setDead();
+		}
+	}
+	else if (m_distanceTrav == 4)
 	{
 		setDead();
 	}
+	//else if ()
 }
 
 // Barrel IMPLEMENTATION //
@@ -307,7 +370,7 @@ void Barrel::doSomething()
 		setVisible(true);
 		return;
 	}
-	else if (getWorld()->isWithinRadius(getX(), getY(), getFracker()->getX(), getFracker()->getY(), 3))
+	else if (getWorld()->isCollidingWith(getX(), getY(), getFracker()))
 	{
 		setDead();
 		GameController::getInstance().playSound(SOUND_FOUND_OIL);
@@ -323,7 +386,7 @@ GoldNugget::GoldNugget(int x, int y, bool isPerm, StudentWorld* world, FrackMan*
 {
 	if (isPermanentState)
 	{
-		setVisible(false);
+		setVisible(true);
 		canFrackManGet = true;
 	}
 	else
@@ -346,7 +409,7 @@ void GoldNugget::doSomething()
 		setVisible(true);
 		return;
 	}
-	else if (canFrackManGet == true && getWorld()->isWithinRadius(getX(), getY(), getFracker()->getX(), getFracker()->getY(), 3.0))
+	else if (canFrackManGet == true && getWorld()->isCollidingWith(getX(), getY(), getFracker()))
 	{
 		setDead();
 		GameController::getInstance().playSound(SOUND_GOT_GOODIE);
@@ -389,7 +452,7 @@ void SonarKit::doSomething()
 	if (!isStillAlive())
 		return;
 
-	if (getWorld()->isWithinRadius(getX(), getY(), getFracker()->getX(), getFracker()->getY(), 3.0))
+	if (getWorld()->isCollidingWith(getX(), getY(), getFracker()))
 	{
 		setDead();
 		GameController::getInstance().playSound(SOUND_GOT_GOODIE);
@@ -427,7 +490,7 @@ void WaterPool::doSomething()
 		setDead();
 		GameController::getInstance().playSound(SOUND_GOT_GOODIE);
 		getFracker()->addSquirts();
-		getWorld()->increaseScore(100);
+		getWorld()->increaseScore(100); 
 	}
 
 	if (m_tickLife == 0)

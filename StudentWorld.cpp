@@ -7,6 +7,7 @@
 #include <cmath>
 #include <iostream>
 #include <iomanip>
+#include "GraphObject.h"
 
 using namespace std;
 
@@ -60,9 +61,9 @@ int StudentWorld::init()
 	// initialize the dirt
 	for (int r = 0; r < 64; r++)
 	{
-		for (int c = 0; c < 60; c++)
+		for (int c = 0; c < 64; c++)
 		{
-			if (r < 30 || r > 33 || c < 4)
+			if ((r < 30 || r > 33 || c < 4) && c < 60)
 			{
 				m_dirt[r][c] = new Dirt(r, c);
 			}
@@ -109,12 +110,14 @@ int StudentWorld::move()
 
 			if (!fracker->isStillAlive())
 			{
+				decLives();
 				return GWSTATUS_PLAYER_DIED;
 			}
 
 			if (m_barrelsLeft == 0)
 			{
 				GameController::getInstance().playSound(SOUND_FINISHED_LEVEL);
+				advanceToNextLevel();
 				return GWSTATUS_FINISHED_LEVEL;
 			}
 		}
@@ -151,9 +154,42 @@ void StudentWorld::cleanUp()
 	delete fracker;
 }
 
-bool StudentWorld::isCollidingWith(int x, int y, Actor* obj)
+bool StudentWorld::isCloseTo(int x, int y, Actor* obj)
 {
 	return isWithinRadius(x, y, obj->getX(), obj->getY(), 6.0);
+}
+
+bool StudentWorld::isCloseToAnyActor(int x, int y)
+{
+	vector<Actor*>::iterator p = m_actors.begin();
+	while (p != m_actors.end())
+	{
+		if (isCloseTo(x, y, *p))
+		{
+			return true;
+		}
+		p++;
+	}
+	return false;
+}
+
+bool StudentWorld::isCollidingWith(int x, int y, Actor* obj)
+{
+	return isWithinRadius(x, y, obj->getX(), obj->getY(), 3.0);
+}
+
+bool StudentWorld::canMoveHere(int x, int y)
+{
+	vector<Actor*>::iterator p = m_actors.begin();
+	while (p != m_actors.end())
+	{
+		if ((*p)->doesThisBlock() == true && isCollidingWith(x, y, *p))
+		{
+			return false;
+		}
+		p++;
+	}
+	return true;
 }
 
 bool StudentWorld::isThereDirtHere(int x, int y)
@@ -210,11 +246,6 @@ void StudentWorld::destroyDirt(int x, int y)
 	}
 }
 
-void StudentWorld::insertSquirt(int x, int y, int dir)
-{
-	// Squirt* sqr = new Squirt();
-}
-
 void StudentWorld::removeDeadObjects()
 {
 	vector<Actor*>::iterator p = m_actors.begin();
@@ -250,10 +281,16 @@ void StudentWorld::addBoulders()
 			}
 		}*/
 
+		// If it is the first Actor, check if it is in mine shaft
+		while (randX >= 26 && randX <= 33)
+		{
+			randX = randInt(0, 60);
+		}
+
 		vector<Actor*>::iterator p = m_actors.begin();
 		while (p != m_actors.end())
 		{
-			if (isCollidingWith(randX, randY, *p) || (randX >= 26 && randX <= 33))
+			if (isCloseToAnyActor(randX, randY) || (randX >= 26 && randX <= 33))
 			{
 				randX = randInt(0, 60);
 				randY = randInt(20, 56);
@@ -276,10 +313,16 @@ void StudentWorld::addNuggets()
 		int randX = randInt(0, 60);
 		int randY = randInt(20, 56);
 
+		// If it is the first Actor, check if it is in mine shaft
+		while (randX >= 26 && randX <= 33)
+		{
+			randX = randInt(0, 60);
+		}
+
 		vector<Actor*>::iterator p = m_actors.begin();
 		while (p != m_actors.end())
 		{
-			if (isCollidingWith(randX, randY, *p) || (randX >= 26 && randX <= 33))
+			if (isCloseToAnyActor(randX, randY) || (randX >= 26 && randX <= 33))
 			{
 				randX = randInt(0, 60);
 				randY = randInt(20, 56);
@@ -307,10 +350,16 @@ void StudentWorld::addBarrels()
 		int randX = randInt(0, 60);
 		int randY = randInt(20, 56);
 
+		// If it is the first Actor, check if it is in mine shaft
+		while (randX >= 26 && randX <= 33)
+		{
+			randX = randInt(0, 60);
+		}
+
 		vector<Actor*>::iterator p = m_actors.begin();
 		while (p != m_actors.end())
 		{
-			if (isCollidingWith(randX, randY, *p) || (randX >= 26 && randX <= 33))
+			if (isCloseToAnyActor(randX, randY) || (randX >= 26 && randX <= 33))
 			{
 				randX = randInt(0, 60);
 				randY = randInt(20, 56);
@@ -333,6 +382,18 @@ void StudentWorld::addSonarKits()
 void StudentWorld::addWaterPools()
 {
 	
+}
+
+void StudentWorld::insertSquirt(int x, int y, GraphObject::Direction dir)
+{
+	if (dir == GraphObject::left && x - 4 >= 0 && isThereDirtHere(x - 4, y) == false)
+		m_actors.push_back(new Squirt(x - 4, y, dir, this, fracker));
+	else if (dir == GraphObject::right && x + 4 <= 60 && isThereDirtHere(x + 4, y) == false)
+		m_actors.push_back(new Squirt(x + 4, y, dir, this, fracker));
+	else if (dir == GraphObject::up && y + 4 <= 60 && isThereDirtHere(x, y + 4) == false)
+		m_actors.push_back(new Squirt(x, y + 4, dir, this, fracker));
+	else if (dir == GraphObject::down && y - 4 >= 0 && isThereDirtHere(x, y - 4) == false)
+		m_actors.push_back(new Squirt(x, y - 4, dir, this, fracker));
 }
 
 int StudentWorld::min(int a, int b)
@@ -431,4 +492,22 @@ bool StudentWorld::isWithinRadius(int x1, int y1, int x2, int y2, double r)
 void StudentWorld::reduceBarrels()
 {
 	m_barrelsLeft--;
+}
+
+FrackMan* StudentWorld::getFrack()
+{
+	return fracker;
+}
+
+void StudentWorld::revealCloseObjects(int x, int y)
+{
+	vector<Actor*>::iterator p = m_actors.begin();
+	while (p != m_actors.end())
+	{
+		if (isWithinRadius(x, y, (*p)->getX(), (*p)->getY(), 12.0))
+		{
+			(*p)->setVisible(true);
+		}
+		p++;
+	}
 }
