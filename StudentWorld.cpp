@@ -36,10 +36,6 @@ StudentWorld::~StudentWorld()
 		delete m_actors.at(i);
 	m_actors.clear();
 
-	/*for (int k = 0; k < m_dirt.size(); k++) 
-		delete m_dirt.at(k);
-	m_dirt.clear();*/
-
 	for (int x = 0; x < 64; x++)
 	{
 		for (int y = 0; y < 60; y++)
@@ -86,11 +82,8 @@ int StudentWorld::init()
 	// initialize the Barrels
 	addBarrels();
 
-	SonarKit* sk = new SonarKit(0, 60, this, fracker);
-	m_actors.push_back(sk);
-
-	WaterPool* water = new WaterPool(5, 40, this, fracker);
-	m_actors.push_back(water);
+	// add a Protester
+	addProtester();
 
 	return GWSTATUS_CONTINUE_GAME;
 }
@@ -126,6 +119,19 @@ int StudentWorld::move()
 	// delete actors that need to be deleted and remove them from the vector
 	removeDeadObjects();
 
+	int G = getLevel() * 25 + 300;
+	if (randInt(1, G) == 1)
+	{
+		if (randInt(1, 5) == 1)
+		{
+			addSonarKit();
+		}
+		else
+		{
+			addWaterPool();
+		}
+	}
+
 	return GWSTATUS_CONTINUE_GAME;
 }
 
@@ -134,10 +140,6 @@ void StudentWorld::cleanUp()
 	for (int i = 0; i < m_actors.size(); i++)
 		delete m_actors.at(i);
 	m_actors.clear();
-
-	/*for (int k = 0; k < m_dirt.size(); k++)
-		delete m_dirt.at(k);
-	m_dirt.clear();*/
 
 	for (int x = 0; x < 64; x++)
 	{
@@ -194,43 +196,115 @@ bool StudentWorld::canMoveHere(int x, int y)
 
 bool StudentWorld::isThereDirtHere(int x, int y)
 {
-	/*vector<Dirt*>::iterator p = m_dirt.begin();
-	while (p != m_dirt.end())
-	{
-		if ((*p)->getX() == x && (*p)->getY() == y)
-		{
-			return true;
-		}
-		else
-		{
-			p++;
-		}
-	}
-	return false;*/
+	if (x < 0 || y < 0 || x > 63 || y > 63)
+		return false;
 
 	if (m_dirt[x][y] != nullptr)
 		return true;
 	return false;
 }
 
+bool StudentWorld::isThereDirtInThisBox(int x, int y)
+{
+	if (x < 0 || y < 0 || x > 60 || y > 60)
+		return false;
+
+	for (int i = x; i < x + 4; i++)
+	{
+		for (int j = y; j < y + 4; j++)
+		{
+			if (m_dirt[i][j] != nullptr)
+				return true;
+		}
+	}
+	return false;
+}
+
+bool StudentWorld::isThereBoulderInThisBox(int x, int y)
+{
+	vector<Actor*>::iterator p = m_actors.begin();
+	while (p != m_actors.end())
+	{
+		// if the actor is a Boulder
+		if ((*p)->doesThisBlock())
+		{
+			for (int i = x - 3; i < x + 4; i++)
+			{
+				for (int j = y - 3; j < y + 4; j++)
+				{
+					if (i == (*p)->getX() && j == (*p)->getY())
+						return true;
+				}
+			}
+		}
+		p++;
+	}
+	return false;
+}
+
+bool StudentWorld::isCollidingWithBoulder(int x, int y)
+{
+	vector<Actor*>::iterator p = m_actors.begin();
+	while (p != m_actors.end())
+	{
+		// if the actor is a Boulder
+		if ((*p)->doesThisBlock())
+		{
+			if (isCollidingWith(x, y, *p))
+				return true;
+		}
+		p++;
+	}
+	return false;
+}
+
+bool StudentWorld::isWithinShoutingDistance(int x, int y)
+{
+	if (isWithinRadius(x, y, fracker->getX(), fracker->getY(), 4.0))
+		return true;
+	return false;
+}
+
+bool StudentWorld::isFacingFrackMan(int x, int y, GraphObject::Direction dir)
+{
+	int fx = fracker->getX();
+	int fy = fracker->getY();
+
+	/*if (x < fx && dir == right)
+		return true;
+	else if (x > fx && dir == left)
+		return true;
+	else if (y < fy && dir == up)
+		return true;
+	else if (y > fy && dir == down)
+		return true;*/
+
+	return true;
+}
+
+bool StudentWorld::isInLineOfSight(int x, int y)
+{
+	int fx = fracker->getX();
+	int fy = fracker->getY();
+
+	for (int i = x - 3; i < x + 4; i++)
+	{
+		for (int j = y - 3; j < y + 4; j++)
+		{
+			if (i == fx || j == fy)
+				return true;
+		}
+	}
+	return false;
+}
+
+void StudentWorld::annoyFrackMan()
+{
+	fracker->reduceHP(2);
+}
+
 void StudentWorld::destroyDirt(int x, int y)
 {
-	/*vector<Dirt*>::iterator p = m_dirt.begin();
-	while (p != m_dirt.end())
-	{
-		if ((*p)->getX() - x >= 0 && (*p)->getX() - x < 4 && (*p)->getY() - y >= 0 && (*p)->getY() - y < 4)
-		{
-			vector<Dirt*>::iterator temp = p;
-			delete *p;
-			p = m_dirt.erase(temp);
-			GameController::getInstance().playSound(SOUND_DIG);
-		}
-		else
-		{
-			p++;
-		}
-	}*/
-
 	for (int i = x; i <= x + 3; i++)
 	{
 		for (int j = y; j <= y + 3; j++)
@@ -262,6 +336,36 @@ void StudentWorld::removeDeadObjects()
 			p++;
 		}
 	}
+}
+
+bool StudentWorld::isBlocked(int x, int y)
+{
+	if (isThereDirtInThisBox(x, y) || isCollidingWithBoulder(x, y))
+		return true;
+	return false;
+}
+
+void StudentWorld::findBestPathFromTopRight()
+{
+	// findPath(60, 60, );
+}
+
+bool StudentWorld::findPath(int x, int y, GraphObject::Direction dir)
+{
+	GraphObject::Direction maze[60][60];
+
+	if (!isBlocked(x, y))
+	{
+		maze[x][y] = dir;
+	}
+	else
+	{
+		// maze[x][y] = right;
+	}
+	return false; // change this
+
+	// if there is any dirt or boulders within the box starting with x,y in the left bottom corner
+	
 }
 
 void StudentWorld::addBoulders()
@@ -301,7 +405,7 @@ void StudentWorld::addBoulders()
 			}
 		}
 
-		m_actors.push_back(new Boulder(randX, randY, this));
+		m_actors.push_back(new Boulder(randX, randY, this, fracker));
 	}
 }
 
@@ -374,26 +478,43 @@ void StudentWorld::addBarrels()
 	}
 }
 
-void StudentWorld::addSonarKits()
+void StudentWorld::addSonarKit()
 {
-	
+	SonarKit* sk = new SonarKit(0, 60, this, fracker);
+	m_actors.push_back(sk);
 }
 
-void StudentWorld::addWaterPools()
+void StudentWorld::addWaterPool()
 {
-	
+	int randX = randInt(0, 60);
+	int randY = randInt(0, 60);
+
+	while (isThereDirtInThisBox(randX, randY))
+	{
+		randX = randInt(0, 60);
+		randY = randInt(0, 60);
+	}
+
+	WaterPool* water = new WaterPool(randX, randY, this, fracker);
+	m_actors.push_back(water);
 }
 
 void StudentWorld::insertSquirt(int x, int y, GraphObject::Direction dir)
 {
-	if (dir == GraphObject::left && x - 4 >= 0 && isThereDirtHere(x - 4, y) == false)
-		m_actors.push_back(new Squirt(x - 4, y, dir, this, fracker));
-	else if (dir == GraphObject::right && x + 4 <= 60 && isThereDirtHere(x + 4, y) == false)
-		m_actors.push_back(new Squirt(x + 4, y, dir, this, fracker));
-	else if (dir == GraphObject::up && y + 4 <= 60 && isThereDirtHere(x, y + 4) == false)
-		m_actors.push_back(new Squirt(x, y + 4, dir, this, fracker));
-	else if (dir == GraphObject::down && y - 4 >= 0 && isThereDirtHere(x, y - 4) == false)
-		m_actors.push_back(new Squirt(x, y - 4, dir, this, fracker));
+	if (dir == GraphObject::left && isThereDirtInThisBox(x - 3, y) == false)
+		m_actors.push_back(new Squirt(x - 3, y, dir, this, fracker));
+	else if (dir == GraphObject::right && isThereDirtInThisBox(x + 3, y) == false)
+		m_actors.push_back(new Squirt(x + 3, y, dir, this, fracker));
+	else if (dir == GraphObject::up && isThereDirtInThisBox(x, y + 3) == false)
+		m_actors.push_back(new Squirt(x, y + 3, dir, this, fracker));
+	else if (dir == GraphObject::down && isThereDirtInThisBox(x, y - 3) == false)
+		m_actors.push_back(new Squirt(x, y - 3, dir, this, fracker));
+}
+
+void StudentWorld::addProtester()
+{
+	Protester* pro = new Protester(this);
+	m_actors.push_back(pro);
 }
 
 int StudentWorld::min(int a, int b)

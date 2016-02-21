@@ -47,20 +47,29 @@ Dirt::~Dirt()
 void Dirt::doSomething()
 {}
 
-// MOVEABLE OBJECTS IMPLEMENTATION
+// LIVING ACTOR IMPLEMENTATION //
 
-MoveableObject::MoveableObject(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world)
-	: Actor(id, x, y, dir, size, depth), m_World(world)
+LivingActor::LivingActor(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world, int hp)
+	: Actor(id, x, y, dir, size, depth), m_World(world), m_hp(hp)
 {}
 
-MoveableObject::~MoveableObject()
+LivingActor::~LivingActor()
 {}
 
-StudentWorld* MoveableObject::getWorld() const
+StudentWorld* LivingActor::getWorld() const
 {
 	return m_World;
 }
 
+int LivingActor::getHP() const
+{
+	return m_hp;
+}
+
+void LivingActor::reduceHP(int num)
+{
+	m_hp = m_hp - num;
+}
 // STATIONARY OBJECTS IMPLEMENTATION //
 
 StationaryObject::StationaryObject(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world, FrackMan* fracker)
@@ -83,7 +92,7 @@ FrackMan* StationaryObject::getFracker() const
 // FRACKMAN IMPLEMENTATION //
 
 FrackMan::FrackMan(StudentWorld* world)
-	: MoveableObject(IID_PLAYER, 30, 60, right, 1.0, 0, world), m_hp(10), m_squirts(5), m_sCharges(1), m_gold(0)
+	: LivingActor(IID_PLAYER, 30, 60, right, 1.0, 0, world, 10), m_squirts(5), m_sCharges(1), m_gold(0)
 {
 	setVisible(true);
 }
@@ -110,7 +119,7 @@ void FrackMan::doSomething()
 			if (m_squirts > 0)
 			{
 				getWorld()->insertSquirt(getX(), getY(), getDirection());
-				m_squirts--;
+				//m_squirts--;
 			}
 			break;
 		case 'z':
@@ -173,11 +182,6 @@ void FrackMan::doSomething()
 	}
 }
 
-int FrackMan::getHP() const
-{
-	return m_hp;
-}
-
 int FrackMan::getSquirts() const
 {
 	return m_squirts;
@@ -191,11 +195,6 @@ int FrackMan::getsCharges() const
 int FrackMan::getGold() const
 {
 	return m_gold;
-}
-
-void FrackMan::addHP() 
-{
-	m_hp++;
 }
 
 void FrackMan::addSquirts() 
@@ -215,8 +214,8 @@ void FrackMan::addGold()
 
 // BOULDER IMPLEMENTATION //
 
-Boulder::Boulder(int x, int y, StudentWorld* world)
-	: MoveableObject(IID_BOULDER, x, y, down, 1.0, 1, world), m_state(0), m_tickLife(30), m_x(getX()), m_y(getY())
+Boulder::Boulder(int x, int y, StudentWorld* world, FrackMan* fracker)
+	: StationaryObject(IID_BOULDER, x, y, down, 1.0, 1, world, fracker), m_state(0), m_tickLife(30), m_x(getX()), m_y(getY())
 {
 	setVisible(true);
 	getWorld()->destroyDirt(x, y);
@@ -317,22 +316,22 @@ void Squirt::doSomething()
 	}
 	else if (m_distanceTrav < 4)
 	{
-		if (getDirection() == right && getX() + 1 <= 60 && getWorld()->isThereDirtHere(getX() + 4, getY()) == false)
+		if (getDirection() == right && getX() + 1 <= 60 && !getWorld()->isThereDirtHere(getX() + 4, getY()) && !getWorld()->isThereBoulderInThisBox(getX() + 1, getY()))
 		{
 			moveTo(getX() + 1, getY());
 			m_distanceTrav++;
 		}
-		else if (getDirection() == left && getX() - 1 >= 0 && getWorld()->isThereDirtHere(getX() - 4, getY()) == false)
+		else if (getDirection() == left && getX() - 1 >= 0 && !getWorld()->isThereDirtHere(getX() - 1, getY()) && !getWorld()->isThereBoulderInThisBox(getX() - 1, getY()))
 		{
 			moveTo(getX() - 1, getY());
 			m_distanceTrav++;
 		}
-		else if (getDirection() == up &&  getY() + 1 <= 60 && getWorld()->isThereDirtHere(getX(), getY() + 4) == false)
+		else if (getDirection() == up &&  getY() + 1 <= 60 && !getWorld()->isThereDirtHere(getX(), getY() + 4) && !getWorld()->isThereBoulderInThisBox(getX(), getY() + 1))
 		{
 			moveTo(getX(), getY() + 1);
 			m_distanceTrav++;
 		}
-		else if (getDirection() == down && getY() - 1 >= 0 && getWorld()->isThereDirtHere(getX(), getY() - 4) == false)
+		else if (getDirection() == down && getY() - 1 >= 0 && !getWorld()->isThereDirtHere(getX(), getY() - 1) && !getWorld()->isThereBoulderInThisBox(getX(), getY() - 1))
 		{
 			moveTo(getX(), getY() - 1);
 			m_distanceTrav++;
@@ -499,4 +498,72 @@ void WaterPool::doSomething()
 		return;
 	}
 	m_tickLife--;
+}
+
+// PROTESTER IMPLEMENTATION //
+
+Protester::Protester(StudentWorld* world)
+	: LivingActor(IID_PROTESTER, 60, 60, left, 1.0, 0, world, 5), leaveField(false), hasShouted(false), shoutCounter(0)
+{
+	numSquaresToMove = world->randInt(8, 60);
+	tickCounter = world->max(0, 3 - world->getLevel() / 4);
+	setVisible(true);
+}
+
+Protester::~Protester()
+{}
+
+void Protester::doSomething()
+{
+	if (!isStillAlive())
+		return;
+
+	// if this tick is not a resting tick
+	if (tickCounter == 0)
+	{
+		if (shoutCounter == 0)
+		{
+			hasShouted = false;
+		}
+		else
+			shoutCounter--;
+	}
+
+	// if Protesters is in rest state
+	if (tickCounter != 0)
+	{
+		tickCounter--;
+		return;
+	}
+	else if (leaveField == true)
+	{
+		if (getX() == 60 && getY() == 60)
+			setDead();
+		// call a function that finds the next best step for it to take towards the exit
+		// call moveTo function
+		// tickCounter = getWorld()->max(0, 3 - getWorld()->getLevel() / 4);
+		return;
+	}
+	else if (getWorld()->isWithinShoutingDistance(getX(), getY()) && getWorld()->isFacingFrackMan(getX(), getY(), getDirection()) && hasShouted == false)
+	{
+		GameController::getInstance().playSound(SOUND_PROTESTER_YELL);
+		getWorld()->annoyFrackMan();
+		hasShouted = true;
+		shoutCounter = 15;
+		// tickCounter = getWorld()->max(0, 3 - getWorld()->getLevel() / 4);
+		return;
+	}
+	else if (getWorld()->isInLineOfSight(getX(), getY()) && !getWorld()->isWithinShoutingDistance(getX(), getY()))// && can move to the frackman if walk in a straight line (not blocked)
+	{
+		// setDirection to face the frackman and take a step towards the frackman
+		// setNumStepsToMove to 0
+		return;
+	}
+	else
+	{
+		moveTo(getX() - 1, getY());
+		// tickCounter = getWorld()->max(0, 3 - getWorld()->getLevel() / 4);
+		tickCounter = 20;
+		return;
+	}	
 }

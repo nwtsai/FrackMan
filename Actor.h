@@ -5,6 +5,7 @@
 #include "GameController.h"
 
 class StudentWorld;
+class FrackMan;
 
 // ACTOR DECLARATION //
 
@@ -31,22 +32,23 @@ public:
 	virtual void doSomething();
 };
 
-// MOVEABLE OBJECT DECLARATION //
+// LIVING ACTOR DECLARATION //
 
-class MoveableObject : public Actor
+class LivingActor : public Actor
 {
 public:
-	MoveableObject(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world);
-	virtual ~MoveableObject();
+	LivingActor(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world, int hp);
+	virtual ~LivingActor();
 	virtual void doSomething() = 0;
 	StudentWorld* getWorld() const;
+	int getHP() const;
+	void reduceHP(int num);
 private:
 	StudentWorld* m_World;
+	int m_hp;
 };
 
 // STATIONARY OBJECT DECLARATION //
-
-class FrackMan;
 
 class StationaryObject : public Actor
 {
@@ -63,22 +65,20 @@ private:
 
 // FRACKMAN DECLARATION // 
 
-class FrackMan : public MoveableObject
+class FrackMan : public LivingActor
 {
 public:
 	FrackMan(StudentWorld* world);
 	~FrackMan();
 	virtual void doSomething();
-	int getHP() const;
 	int getSquirts() const;
 	int getsCharges() const;
 	int getGold() const;
-	void addHP();
+	
 	void addSquirts();
 	void addCharges();
 	void addGold();
 private:
-	int m_hp;
 	int m_squirts;
 	int m_sCharges;
 	int m_gold;
@@ -86,10 +86,10 @@ private:
 
 // BOULDER DECLARATION //
 
-class Boulder : public MoveableObject
+class Boulder : public StationaryObject
 {
 public:
-	Boulder(int x, int y, StudentWorld* world);
+	Boulder(int x, int y, StudentWorld* world, FrackMan* fracker);
 	~Boulder();
 	virtual void doSomething();
 	bool isAnyDirtUnderBoulder();
@@ -165,31 +165,33 @@ private:
 	int m_tickLife;
 };
 
-//////////////////////////////////////////////////////////////////
+// PROTESTER DECLARATION //
 
-/*class Protester : public GameObject
+class Protester : public LivingActor
 {
 public:
-	Protester(StudentWorld* world, int x, int y);
+	Protester(StudentWorld* world);
 	~Protester();
 	virtual void doSomething();
-	int getHealth();
-	void lowerHealth();
 private:
-	int m_health;
+	bool leaveField;
+	int numSquaresToMove;
+	int tickCounter;
+	bool hasShouted;
+	int shoutCounter;
 };
 
-//////////////////////////////////////////////////////////////////
+// HARDCOREPROTESTER DECLARATION // 
 
 class HardcoreProtester : public Protester
 {
 public:
-	HardcoreProtester(StudentWorld* world, int x, int y);
+	HardcoreProtester(StudentWorld* world);
 	~HardcoreProtester();
 	virtual void doSomething();
 	int getHealth();
 	void lowerHealth();
 private:
 	int m_health;
-};*/
+};
 #endif // ACTOR_H_

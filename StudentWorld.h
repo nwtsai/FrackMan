@@ -25,21 +25,32 @@ public:
 	virtual int move();
 	virtual void cleanUp();
 	virtual bool isCloseTo(int x, int y, Actor* obj);
-	virtual bool isCloseToAnyActor(int x, int y);
+	bool isCloseToAnyActor(int x, int y);
 	virtual bool isCollidingWith(int x, int y, Actor* obj);
-	virtual bool canMoveHere(int x, int y);
+	bool canMoveHere(int x, int y);
 	bool isThereDirtHere(int x, int y);
+	bool isThereDirtInThisBox(int x, int y);
+	bool isThereBoulderInThisBox(int x, int y);
+	bool isCollidingWithBoulder(int x, int y);
+	bool isWithinShoutingDistance(int x, int y);
+	bool isFacingFrackMan(int x, int y, GraphObject::Direction dir); // need to change
+	bool isInLineOfSight(int x, int y); // need to change
+	void annoyFrackMan();
 	void destroyDirt(int x, int y);
 	void removeDeadObjects();
+	bool isBlocked(int x, int y);
+	void findBestPathFromTopRight(); // need to change
+	bool findPath(int x, int y, GraphObject::Direction dir); // need to change
 
 	void addBoulders();
 	void addNuggets();
 	void dropNugget(int x, int y);
 	void addBarrels();
-	void addSonarKits();
-	void addWaterPools();
+	void addSonarKit();
+	void addWaterPool();
 	void insertSquirt(int x, int y, GraphObject::Direction dir);
-	
+	void addProtester();
+
 	int min(int a, int b);
 	int max(int a, int b);
 	int randInt(int l, int h);
@@ -49,8 +60,8 @@ public:
 	void reduceBarrels();
 	FrackMan* getFrack();
 	void revealCloseObjects(int x, int y);
+
 private:
-	// vector <Dirt*> m_dirt;
 	Dirt* m_dirt[64][64];
 	vector<Actor*> m_actors;
 	FrackMan* fracker;
