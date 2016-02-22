@@ -172,6 +172,7 @@ class Protester : public LivingActor
 public:
 	Protester(StudentWorld* world);
 	~Protester();
+	void takeStep(Direction dir);
 	virtual void doSomething();
 private:
 	bool leaveField;

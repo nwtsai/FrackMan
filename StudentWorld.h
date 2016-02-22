@@ -33,8 +33,9 @@ public:
 	bool isThereBoulderInThisBox(int x, int y);
 	bool isCollidingWithBoulder(int x, int y);
 	bool isWithinShoutingDistance(int x, int y);
-	bool isFacingFrackMan(int x, int y, GraphObject::Direction dir); // need to change
-	bool isInLineOfSight(int x, int y); // need to change
+	bool isFacingFrackMan(int x, int y, GraphObject::Direction dir);
+	GraphObject::Direction faceTheFrack(int x, int y);
+	bool isInLineOfSight(int x, int y);
 	void annoyFrackMan();
 	void destroyDirt(int x, int y);
 	void removeDeadObjects();

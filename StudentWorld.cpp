@@ -270,16 +270,33 @@ bool StudentWorld::isFacingFrackMan(int x, int y, GraphObject::Direction dir)
 	int fx = fracker->getX();
 	int fy = fracker->getY();
 
-	/*if (x < fx && dir == right)
+	if (x < fx && dir == Actor::right) 
 		return true;
-	else if (x > fx && dir == left)
+	else if (x > fx && dir == Actor::left) 
 		return true;
-	else if (y < fy && dir == up)
+	else if (y < fy && dir == Actor::up)
 		return true;
-	else if (y > fy && dir == down)
-		return true;*/
+	else if (y > fy && dir == Actor::down) 
+		return true;
 
-	return true;
+	return false;
+}
+
+GraphObject::Direction StudentWorld::faceTheFrack(int x, int y)
+{
+	int fx = fracker->getX();
+	int fy = fracker->getY();
+
+	if (x < fx)
+		return Actor::right; 
+	else if (x > fx) 
+		return Actor::left;
+	else if (y < fy)
+		return Actor::up;
+	else if (y > fy)
+		return Actor::down;
+	else
+		return Actor::up; // if the coordinates x and y are directly on top of the frackman, return up as default
 }
 
 bool StudentWorld::isInLineOfSight(int x, int y)
@@ -287,15 +304,55 @@ bool StudentWorld::isInLineOfSight(int x, int y)
 	int fx = fracker->getX();
 	int fy = fracker->getY();
 
-	for (int i = x - 3; i < x + 4; i++)
+	int lessX;
+	int biggerX;
+	int lessY;
+	int biggerY;
+
+	if (x == fx)
 	{
-		for (int j = y - 3; j < y + 4; j++)
+		if (y < fy)
 		{
-			if (i == fx || j == fy)
-				return true;
+			lessY = y;
+			biggerY = fy;
+		}
+		else
+		{
+			lessY = fy;
+			biggerY = y;
+		}
+
+		for (int j = lessY; j < biggerY; j++)
+		{
+			if (isThereDirtInThisBox(x, j) || isThereBoulderInThisBox(x, j))
+				return false;
 		}
 	}
-	return false;
+	else if (y == fy)
+	{
+		if (x < fx)
+		{
+			lessX = x;
+			biggerX = fx;
+		}
+		else
+		{
+			lessX = fx;
+			biggerX = x;
+		}
+			
+		for (int i = lessX; i < biggerX; i++)
+		{
+			if (isThereDirtInThisBox(i, y) || isThereBoulderInThisBox(i, y))
+				return false;
+		}
+	}
+	else
+	{
+		return false;
+	}
+
+	return true;
 }
 
 void StudentWorld::annoyFrackMan()

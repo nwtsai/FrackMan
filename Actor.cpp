@@ -513,6 +513,18 @@ Protester::Protester(StudentWorld* world)
 Protester::~Protester()
 {}
 
+void Protester::takeStep(Direction dir)
+{
+	if (dir == right)
+		moveTo(getX() + 1, getY());
+	else if (dir == left)
+		moveTo(getX() - 1, getY());
+	else if (dir == up)
+		moveTo(getX(), getY() + 1);
+	else // dir == down
+		moveTo(getX(), getY() - 1);
+}
+
 void Protester::doSomething()
 {
 	if (!isStillAlive())
@@ -521,6 +533,7 @@ void Protester::doSomething()
 	// if this tick is not a resting tick
 	if (tickCounter == 0)
 	{
+		// only check and update shoutCounter during a non-resting tick
 		if (shoutCounter == 0)
 		{
 			hasShouted = false;
@@ -553,17 +566,18 @@ void Protester::doSomething()
 		// tickCounter = getWorld()->max(0, 3 - getWorld()->getLevel() / 4);
 		return;
 	}
-	else if (getWorld()->isInLineOfSight(getX(), getY()) && !getWorld()->isWithinShoutingDistance(getX(), getY()))// && can move to the frackman if walk in a straight line (not blocked)
+	else if (getWorld()->isInLineOfSight(getX(), getY()) && !getWorld()->isWithinShoutingDistance(getX(), getY()))
 	{
-		// setDirection to face the frackman and take a step towards the frackman
-		// setNumStepsToMove to 0
+		setDirection(getWorld()->faceTheFrack(getX(), getY()));
+		takeStep(getDirection());
+		numSquaresToMove = 0;
 		return;
 	}
 	else
 	{
 		moveTo(getX() - 1, getY());
 		// tickCounter = getWorld()->max(0, 3 - getWorld()->getLevel() / 4);
-		tickCounter = 20;
+		tickCounter = 10;
 		return;
 	}	
 }
