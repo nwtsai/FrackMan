@@ -28,15 +28,21 @@ public:
 	bool isCloseToAnyActor(int x, int y);
 	virtual bool isCollidingWith(int x, int y, Actor* obj);
 	bool canMoveHere(int x, int y);
+	bool canStepHere(int x, int y, GraphObject::Direction dir);
 	bool isThereDirtHere(int x, int y);
 	bool isThereDirtInThisBox(int x, int y);
 	bool isThereBoulderInThisBox(int x, int y);
+	bool isThereBoulderUnderMe(int x, int y);
 	bool isCollidingWithBoulder(int x, int y);
+	bool isCollidingWithProtester(int x, int y);
+	void annoyProtester(int objX, int objY, bool isCompletelyAnnoyed);
 	bool isWithinShoutingDistance(int x, int y);
 	bool isFacingFrackMan(int x, int y, GraphObject::Direction dir);
 	GraphObject::Direction faceTheFrack(int x, int y);
+	GraphObject::Direction getRandDir();
+	GraphObject::Direction canTurn(int x, int y, GraphObject::Direction dir); // returns none if can't turn
 	bool isInLineOfSight(int x, int y);
-	void annoyFrackMan();
+	void annoyFrackMan(bool isCompletelyAnnoyed);
 	void destroyDirt(int x, int y);
 	void removeDeadObjects();
 	bool isBlocked(int x, int y);

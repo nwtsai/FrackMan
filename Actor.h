@@ -18,6 +18,8 @@ public:
 	virtual bool isStillAlive();
 	virtual void setDead();
 	virtual bool doesThisBlock();
+	virtual bool isProtester();
+	virtual void getAnnoyed(bool isCompletelyAnnoyed);
 private:
 	bool m_alive;
 };
@@ -74,6 +76,7 @@ public:
 	int getSquirts() const;
 	int getsCharges() const;
 	int getGold() const;
+	virtual void getAnnoyed(bool isCompletelyAnnoyed);
 	
 	void addSquirts();
 	void addCharges();
@@ -113,9 +116,10 @@ public:
 	virtual void doSomething();
 private:
 	int m_distanceTrav;
+	bool isFirstTick;
 };
 
-// Barrel DECLARATION //
+// BARREL DECLARATION //
 
 class Barrel : public StationaryObject
 {
@@ -170,29 +174,32 @@ private:
 class Protester : public LivingActor
 {
 public:
-	Protester(StudentWorld* world);
+	Protester(int ID, int HP, StudentWorld* world);
 	~Protester();
 	void takeStep(Direction dir);
+	virtual void getAnnoyed(bool isCompletelyAnnoyed);
 	virtual void doSomething();
+	virtual bool isProtester();
+	int gettickCounter() const;
 private:
 	bool leaveField;
 	int numSquaresToMove;
 	int tickCounter;
 	bool hasShouted;
-	int shoutCounter;
+	bool canTurn;
+	int turnCounter;
 };
 
-// HARDCOREPROTESTER DECLARATION // 
+// HARDCORE PROTESTER DECLARATION // 
 
 class HardcoreProtester : public Protester
 {
 public:
-	HardcoreProtester(StudentWorld* world);
+	HardcoreProtester(int ID, int HP, StudentWorld* world);
 	~HardcoreProtester();
+	virtual void getAnnoyed(bool isCompletelyAnnoyed);
 	virtual void doSomething();
-	int getHealth();
-	void lowerHealth();
 private:
-	int m_health;
+	int tickCounter;
 };
 #endif // ACTOR_H_
