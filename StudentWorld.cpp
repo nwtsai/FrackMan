@@ -725,13 +725,13 @@ void StudentWorld::addWaterPool()
 
 void StudentWorld::insertSquirt(int x, int y, GraphObject::Direction dir)
 {
-	if (dir == GraphObject::left && !isThereDirtInThisBox(x - 4, y) && !isThereBoulderInThisBox(x - 4, y))
+	if (dir == GraphObject::left && !isThereDirtInThisBox(x - 4, y) && !isThereBoulderInThisBox(x - 4, y) && x - 4 >= 0)
 		m_actors.push_back(new Squirt(x - 4, y, dir, this, fracker));
-	else if (dir == GraphObject::right && !isThereDirtInThisBox(x + 4, y) && !isThereBoulderInThisBox(x + 4, y))
+	else if (dir == GraphObject::right && !isThereDirtInThisBox(x + 4, y) && !isThereBoulderInThisBox(x + 4, y) && x + 4 <= 60)
 		m_actors.push_back(new Squirt(x + 4, y, dir, this, fracker));
-	else if (dir == GraphObject::up && !isThereDirtInThisBox(x, y + 4) && !isThereBoulderInThisBox(x, y + 4))
+	else if (dir == GraphObject::up && !isThereDirtInThisBox(x, y + 4) && !isThereBoulderInThisBox(x, y + 4) && y + 4 <= 60)
 		m_actors.push_back(new Squirt(x, y + 4, dir, this, fracker));
-	else if (dir == GraphObject::down && !isThereDirtInThisBox(x, y - 4) && !isThereBoulderInThisBox(x, y - 4))
+	else if (dir == GraphObject::down && !isThereDirtInThisBox(x, y - 4) && !isThereBoulderInThisBox(x, y - 4) && y - 4 >= 0)
 		m_actors.push_back(new Squirt(x, y - 4, dir, this, fracker));
 }
 
@@ -775,7 +775,7 @@ void StudentWorld::setDisplayText()
 	int score = getScore();
 	int level = getLevel();
 	int lives = getLives();
-	int health = fracker->getHP();
+	int health = fracker->getHP() * 10;
 	int squirts = fracker->getSquirts();
 	int gold = fracker->getGold();
 	int sonar = fracker->getsCharges();

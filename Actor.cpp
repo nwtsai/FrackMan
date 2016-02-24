@@ -3,15 +3,11 @@
 #include "GameController.h"
 #include "GraphObject.h"
 
-// Students:  Add code to this file (if you wish), Actor.h, StudentWorld.h, and StudentWorld.cpp
-
 // ACTOR IMPLEMENTATION // 
 
 Actor::Actor(int id, int x, int y, Direction dir, double size, unsigned int depth)
 	: GraphObject(id, x, y, dir, size, depth), m_alive(true)
-{
-	// setVisible(true);
-}
+{}
 
 Actor::~Actor()
 {
@@ -80,21 +76,21 @@ void LivingActor::reduceHP(int num)
 {
 	m_hp = m_hp - num;
 }
-// STATIONARY OBJECTS IMPLEMENTATION //
+// OBJECT IMPLEMENTATION //
 
-StationaryObject::StationaryObject(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world, FrackMan* fracker)
+Object::Object(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world, FrackMan* fracker)
 	: Actor(id, x, y, dir, size, depth), m_World(world), m_Fracker(fracker)
 {}
 
-StationaryObject::~StationaryObject()
+Object::~Object()
 {}
 
-StudentWorld* StationaryObject::getWorld() const
+StudentWorld* Object::getWorld() const
 {
 	return m_World;
 }
 
-FrackMan* StationaryObject::getFracker() const
+FrackMan* Object::getFracker() const
 {
 	return m_Fracker;
 }
@@ -242,7 +238,7 @@ void FrackMan::getAnnoyed(char cause)
 // BOULDER IMPLEMENTATION //
 
 Boulder::Boulder(int x, int y, StudentWorld* world, FrackMan* fracker)
-	: StationaryObject(IID_BOULDER, x, y, down, 1.0, 1, world, fracker), m_state(0), m_tickLife(30), m_x(getX()), m_y(getY())
+	: Object(IID_BOULDER, x, y, down, 1.0, 1, world, fracker), m_state(0), m_tickLife(30)
 {
 	setVisible(true);
 	getWorld()->destroyDirt(x, y);
@@ -315,16 +311,6 @@ void Boulder::doSomething()
 	}
 }
 
-int Boulder::getBoulderX()
-{
-	return m_x;
-}
-
-int Boulder::getBoulderY()
-{
-	return m_y;
-}
-
 bool Boulder::doesThisBlock()
 {
 	return true;
@@ -333,7 +319,7 @@ bool Boulder::doesThisBlock()
 // SQUIRT IMPLEMENTATION //
 
 Squirt::Squirt(int x, int y, Direction dir, StudentWorld* world, FrackMan* fracker)
-	: StationaryObject(IID_WATER_SPURT, x, y, dir, 1.0, 1, world, fracker), m_distanceTrav(0), isFirstTick(true)
+	: Object(IID_WATER_SPURT, x, y, dir, 1.0, 1, world, fracker), m_distanceTrav(0), isFirstTick(true)
 {
 	setVisible(true);
 }
@@ -343,6 +329,7 @@ Squirt::~Squirt()
 
 void Squirt::doSomething()
 {
+	// do nothing on first tick so that initial image shows up
 	if (isFirstTick)
 	{
 		isFirstTick = false;
@@ -401,7 +388,7 @@ void Squirt::doSomething()
 // BARREL IMPLEMENTATION //
 
 Barrel::Barrel(int x, int y, StudentWorld* world, FrackMan* fracker)
-	: StationaryObject(IID_BARREL, x, y, right, 1.0, 2, world, fracker) 
+	: Object(IID_BARREL, x, y, right, 1.0, 2, world, fracker) 
 {
 	setVisible(true); // for testing only, delete after
 }
@@ -431,7 +418,7 @@ void Barrel::doSomething()
 // GOLD NUGGET IMPLEMENTATION //
 
 GoldNugget::GoldNugget(int x, int y, bool isPerm, StudentWorld* world, FrackMan* fracker)
-	: StationaryObject(IID_GOLD, x, y, right, 1.0, 2, world, fracker), isPermanentState(isPerm), m_tickLife(300)
+	: Object(IID_GOLD, x, y, right, 1.0, 2, world, fracker), isPermanentState(isPerm), m_tickLife(300)
 {
 	if (isPermanentState)
 	{
@@ -499,7 +486,7 @@ void GoldNugget::doSomething()
 // SONAR KIT IMPLEMENTATION //
 
 SonarKit::SonarKit(int x, int y, StudentWorld* world, FrackMan* fracker)
-	: StationaryObject(IID_SONAR, x, y, right, 1.0, 2, world, fracker)
+	: Object(IID_SONAR, x, y, right, 1.0, 2, world, fracker)
 {
 	m_tickLife = getWorld()->max(100, 300 - 10 * getWorld()->getLevel());
 	setVisible(true);
@@ -532,7 +519,7 @@ void SonarKit::doSomething()
 // WATER POOL IMPLEMENTATION //
 
 WaterPool::WaterPool(int x, int y, StudentWorld* world, FrackMan* fracker)
-	: StationaryObject(IID_WATER_POOL, x, y, right, 1.0, 2, world, fracker)
+	: Object(IID_WATER_POOL, x, y, right, 1.0, 2, world, fracker)
 {
 	m_tickLife = getWorld()->max(100, 300 - 10 * getWorld()->getLevel());
 	setVisible(true);
@@ -842,20 +829,15 @@ void HardcoreProtester::getAnnoyed(char cause)
 		setTickCounter(getWorld()->max(50, 100 - getWorld()->getLevel() * 10));
 		return;
 	}
-	else if (cause == 'S')
+	// if it gets squirted and the result of squirt is death
+	else if (cause == 'S' && getHP() - 2 <= 0)
 	{
-		if (getHP() - 2 <= 0)
-		{
-			setLeaveField(true);
-			GameController::getInstance().playSound(SOUND_PROTESTER_GIVE_UP);
-			setTickCounter(0);
-			getWorld()->increaseScore(250);
-			return;
-		}
-		else
-		{
-			Protester::getAnnoyed(cause);
-		}
+		reduceHP(2);
+		setLeaveField(true);
+		GameController::getInstance().playSound(SOUND_PROTESTER_GIVE_UP);
+		setTickCounter(0);
+		getWorld()->increaseScore(250);
+		return;
 	}
 	else
 	{

@@ -50,13 +50,13 @@ private:
 	int m_hp;
 };
 
-// STATIONARY OBJECT DECLARATION //
+// OBJECT DECLARATION //
 
-class StationaryObject : public Actor
+class Object : public Actor
 {
 public:
-	StationaryObject(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world, FrackMan* fracker);
-	virtual ~StationaryObject();
+	Object(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world, FrackMan* fracker);
+	virtual ~Object();
 	virtual void doSomething() = 0;
 	StudentWorld* getWorld() const;
 	FrackMan* getFracker() const;
@@ -89,26 +89,22 @@ private:
 
 // BOULDER DECLARATION //
 
-class Boulder : public StationaryObject
+class Boulder : public Object
 {
 public:
 	Boulder(int x, int y, StudentWorld* world, FrackMan* fracker);
 	~Boulder();
 	virtual void doSomething();
 	bool isAnyDirtUnderBoulder();
-	int getBoulderX();
-	int getBoulderY();
 	virtual bool doesThisBlock();
 private:
 	int m_state; // 0 stable | 1 waiting | -1 falling
 	int m_tickLife;
-	int m_x;
-	int m_y;
 };
 
 // SQUIRT DECLARATION //
 
-class Squirt : public StationaryObject
+class Squirt : public Object
 {
 public:
 	Squirt(int x, int y, Direction dir, StudentWorld* world, FrackMan* fracker);
@@ -121,19 +117,17 @@ private:
 
 // BARREL DECLARATION //
 
-class Barrel : public StationaryObject
+class Barrel : public Object
 {
 public:
 	Barrel(int x, int y, StudentWorld* world, FrackMan* fracker);
 	~Barrel();
 	virtual void doSomething();
-private:
-
 };
 
 // GOLD NUGGET DECLARATION //
 
-class GoldNugget : public StationaryObject
+class GoldNugget : public Object
 {
 public:
 	GoldNugget(int x, int y, bool isPerm, StudentWorld* world, FrackMan* fracker);
@@ -147,7 +141,7 @@ private:
 
 // SONAR KIT DECLARATION //
 
-class SonarKit : public StationaryObject
+class SonarKit : public Object
 {
 public:
 	SonarKit(int x, int y, StudentWorld* world, FrackMan* fracker);
@@ -159,7 +153,7 @@ private:
 
 // WATER POOL DECLARATION // 
 
-class WaterPool : public StationaryObject
+class WaterPool : public Object
 {
 public:
 	WaterPool(int x, int y, StudentWorld* world, FrackMan* fracker);
