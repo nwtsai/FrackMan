@@ -302,7 +302,7 @@ void Boulder::doSomething()
 
 			if (getWorld()->isCollidingWith(getX(), getY(), getWorld()->getFrack()))
 			{
-				getWorld()->annoyFrackMan(true);
+				getWorld()->annoyFrackMan('B');
 				setDead();
 			}
 		}
@@ -607,88 +607,8 @@ void Protester::getAnnoyed(char cause)
 
 void Protester::doSomething()
 {
-	// if it is dead, return
-	if (!isStillAlive())
-		return;
-
-	// if Protester isn't in rest state, update turn counter (what about when it is immobilized? ask professor)
-	if (getTickCounter() <= 0)
-	{
-		updateTurnCounter();
-	}
-
-	// hasShouted is only true after the Protester gets immobilized. After 15 non resting ticks have passed, reset hasShouted
-	if (getHasShouted() == true)
-		setHasShouted(false);
-
-	// if Protesters is in rest state
-	if (getTickCounter() > 0)
-	{
-		setTickCounter(getTickCounter() - 1);
-		return;
-	}
-	else if (getLeaveField() == true)
-	{
-		if (getX() == 60 && getY() == 60)
-			setDead();
-		// call a function that finds the next best step for it to take towards the exit
-		// call moveTo function
-		setTickCounter();
-		return;
-	}
-	else if (getWorld()->isWithinShoutingDistance(getX(), getY()) && getWorld()->isFacingFrackMan(getX(), getY(), getDirection()) && getHasShouted() == false)
-	{
-		shout();
-		setTickCounter();
-		setTickCounter(15 * getTickCounter());
-		return;
-	}
-	else if (getWorld()->isInLineOfSight(getX(), getY()))
-	{
-		if (!getWorld()->isWithinShoutingDistance(getX(), getY()))
-		{
-			setDirection(getWorld()->faceTheFrack(getX(), getY()));
-			takeStep(getDirection());
-		}
-		else
-		{
-			setDirection(getWorld()->faceTheFrack(getX(), getY()));
-		}
-		setNumSquaresToMove(0); 
-		setTickCounter();
-		return;
-	}
-	else
-	{
-		setNumSquaresToMove(getNumSquaresToMove() - 1);
-		if (getNumSquaresToMove() <= 0)
-		{
-			setDirection(getViableDirection());
-			setNumSquaresToMove();
-		}
-		else
-		{
-			Direction dir = getWorld()->canTurn(getX(), getY(), getDirection());
-			if (dir != none)
-			{
-				if (getCanTurn() == true)
-				{
-					setDirection(dir);
-					setNumSquaresToMove();
-					setTurnCounter(200); 
-					setCanTurn(false);
-				}
-			}
-		}
-
-		if (getWorld()->canStepHere(getX(), getY(), getDirection()))
-			takeStep(getDirection());
-		else
-			setNumSquaresToMove(0);
-		
-		setTickCounter();
-		return;
-	}	
+	if (!normalMove1())
+		normalMove2();
 }
 
 int Protester::isProtester()
@@ -786,8 +706,104 @@ void Protester::updateTurnCounter()
 void Protester::shout()
 {
 	GameController::getInstance().playSound(SOUND_PROTESTER_YELL);
-	getWorld()->annoyFrackMan(false);
+	getWorld()->annoyFrackMan('P');
 	setHasShouted(true);
+}
+
+bool Protester::normalMove1()
+{
+	// if it is dead, return
+	if (!isStillAlive())
+		return true;
+
+	// if Protester isn't in rest state, update turn counter (what about when it is immobilized? ask professor)
+	if (getTickCounter() <= 0)
+	{
+		updateTurnCounter();
+	}
+
+	// hasShouted is only true after the Protester gets immobilized. After 15 non resting ticks have passed, reset hasShouted
+	if (getHasShouted() == true)
+		setHasShouted(false);
+
+	// if Protesters is in rest state
+	if (getTickCounter() > 0)
+	{
+		setTickCounter(getTickCounter() - 1);
+		return true;
+	}
+	else if (getLeaveField() == true)
+	{
+		if (getX() == 60 && getY() == 60)
+			setDead();
+
+		getWorld()->findBestPathToTopRight();
+		takeStep((getWorld()->getDirMap(getX(), getY())));
+
+		setTickCounter();
+		return true;
+	}
+	else if (getWorld()->isWithinShoutingDistance(getX(), getY()) && getWorld()->isFacingFrackMan(getX(), getY(), getDirection()) && getHasShouted() == false)
+	{
+		shout();
+		setTickCounter();
+		setTickCounter(15 * getTickCounter());
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+void Protester::normalMove2()
+{
+	if (getWorld()->isInLineOfSight(getX(), getY()))
+	{
+		if (!getWorld()->isWithinShoutingDistance(getX(), getY()))
+		{
+			setDirection(getWorld()->faceTheFrack(getX(), getY()));
+			takeStep(getDirection());
+		}
+		else
+		{
+			setDirection(getWorld()->faceTheFrack(getX(), getY()));
+		}
+		setNumSquaresToMove(0);
+		setTickCounter();
+		return;
+	}
+	else
+	{
+		setNumSquaresToMove(getNumSquaresToMove() - 1);
+		if (getNumSquaresToMove() <= 0)
+		{
+			setDirection(getViableDirection());
+			setNumSquaresToMove();
+		}
+		else
+		{
+			Direction dir = getWorld()->canTurn(getX(), getY(), getDirection());
+			if (dir != none)
+			{
+				if (getCanTurn() == true)
+				{
+					setDirection(dir);
+					setNumSquaresToMove();
+					setTurnCounter(200);
+					setCanTurn(false);
+				}
+			}
+		}
+
+		if (getWorld()->canStepHere(getX(), getY(), getDirection()))
+			takeStep(getDirection());
+		else
+			setNumSquaresToMove(0);
+
+		setTickCounter();
+		return;
+	}
 }
 
 GraphObject::Direction Protester::getViableDirection()
@@ -847,19 +863,25 @@ void HardcoreProtester::getAnnoyed(char cause)
 
 void HardcoreProtester::doSomething()
 {
-	/*if (!getWorld()->isWithinShoutingDistance(getX(), getY()))
+	int M = 16 * getWorld()->getLevel() * 2;
+
+	if (!normalMove1())
 	{
-		int M = 16 * getWorld()->getLevel() * 2;
 		// if he is <= M legal steps away from Frackman
 		// determine which direction to face to get closer to frackman
 		// setDirection(this dir)
 		// takeStep(getDirection());
+		if (!getWorld()->isWithinShoutingDistance(getX(), getY()) && getWorld()->getStepMap(getX(), getY()) <= M)
+		{
+			//getWorld()->findBestPathToHere(getWorld()->getFrackerX(), getWorld()->getFrackerY());
+			takeStep(getWorld()->getDirMap(getX(), getY()));
 
-		setTickCounter();
-		return;
+			setTickCounter();
+			return;
+		}
+		else
+		{
+			normalMove2();
+		}
 	}
-	else
-	{*/
-		Protester::doSomething();
-	//}
 }

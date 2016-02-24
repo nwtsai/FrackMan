@@ -192,6 +192,8 @@ public:
 
 	void updateTurnCounter();
 	void shout();
+	bool normalMove1();
+	void normalMove2();
 	Direction getViableDirection();
 private:
 	bool leaveField;

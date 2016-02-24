@@ -28,6 +28,22 @@ StudentWorld::StudentWorld(std::string assetDir)
 	}
 	m_barrelsLeft = min(2 + getLevel(), 20);
 	fracker = nullptr;
+
+	for (int i = 0; i < 61; i++)
+	{
+		for (int j = 0; j < 61; j++)
+		{
+			dirMap[i][j] = Actor::none;
+		}
+	}
+
+	for (int i = 0; i < 61; i++)
+	{
+		for (int j = 0; j < 61; j++)
+		{
+			stepMap[i][j] = 150;
+		}
+	}
 }
 
 StudentWorld::~StudentWorld()
@@ -569,27 +585,67 @@ bool StudentWorld::isBlocked(int x, int y)
 	return false;
 }
 
-void StudentWorld::findBestPathFromTopRight()
+void StudentWorld::findBestPathToTopRight()
 {
-	// findPath(60, 60, );
+	for (int i = 0; i < 61; i++)
+	{
+		for (int j = 0; j < 61; j++)
+		{
+			dirMap[i][j] = Actor::none;
+			stepMap[i][j] = 150;
+		}
+	}
+
+	findPath(60, 60, Actor::right, 0);
 }
 
-bool StudentWorld::findPath(int x, int y, GraphObject::Direction dir)
+void StudentWorld::findBestPathToHere(int x, int y)
 {
-	GraphObject::Direction maze[60][60];
-
-	if (!isBlocked(x, y))
+	for (int i = 0; i < 61; i++)
 	{
-		maze[x][y] = dir;
+		for (int j = 0; j < 61; j++)
+		{
+			dirMap[i][j] = Actor::none;
+			stepMap[i][j] = 150;
+		}
+	}
+
+	findPath(x, y, Actor::right, 0);
+}
+
+void StudentWorld::findPath(int x, int y, GraphObject::Direction dir, int steps)
+{
+	if (steps < stepMap[x][y] && x >= 0 && x < 61 && y >=0 && y < 61 && !isThereBoulderInThisBox(x, y) && !isThereDirtInThisBox(x, y))
+	{
+		stepMap[x][y] = steps;
+		dirMap[x][y] = dir;
 	}
 	else
-	{
-		// maze[x][y] = right;
-	}
-	return false; // change this
+		return;
+	findPath(x - 1, y, Actor::right, steps++);
+	findPath(x + 1, y, Actor::left, steps++);
+	findPath(x, y - 1, Actor::up, steps++);
+	findPath(x, y + 1, Actor::down, steps++);
+}
 
-	// if there is any dirt or boulders within the box starting with x,y in the left bottom corner
-	
+GraphObject::Direction StudentWorld::getDirMap(int x, int y)
+{
+	return dirMap[x][y];
+}
+
+int StudentWorld::getStepMap(int x, int y)
+{
+	return stepMap[x][y];
+}
+
+int StudentWorld::getFrackerX()
+{
+	return fracker->getX();
+}
+
+int StudentWorld::getFrackerY()
+{
+	return fracker->getY();
 }
 
 void StudentWorld::addBoulders()

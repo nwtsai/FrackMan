@@ -47,8 +47,13 @@ public:
 	void destroyDirt(int x, int y);
 	void removeDeadObjects();
 	bool isBlocked(int x, int y);
-	void findBestPathFromTopRight(); // need to change
-	bool findPath(int x, int y, GraphObject::Direction dir); // need to change
+	void findBestPathToTopRight(); // need to change
+	void findBestPathToHere(int x, int y);
+	void findPath(int x, int y, GraphObject::Direction dir, int step); // need to change
+	GraphObject::Direction getDirMap(int x, int y);
+	int getStepMap(int x, int y);
+	int getFrackerX();
+	int getFrackerY();
 
 	void addBoulders();
 	void addNuggets();
@@ -75,6 +80,8 @@ private:
 	vector<Actor*> m_actors;
 	FrackMan* fracker;
 	int m_barrelsLeft;
+	Actor::Direction dirMap[61][61];
+	int stepMap[61][61];
 };
 
 #endif // STUDENTWORLD_H_
