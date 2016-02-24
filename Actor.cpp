@@ -1,6 +1,7 @@
 #include "Actor.h"
 #include "StudentWorld.h"
 #include "GameController.h"
+#include "GraphObject.h"
 
 // Students:  Add code to this file (if you wish), Actor.h, StudentWorld.h, and StudentWorld.cpp
 
@@ -33,13 +34,13 @@ bool Actor::doesThisBlock()
 	return false;
 }
 
-bool Actor::isProtester()
+int Actor::isProtester() // returns 0 if not protester, 1 if regular protester, 2 if hardcore protester
 {
-	return false;
+	return 0;
 }
 
 // only does something in FrackMan, Protester, and HardCore Protesters. Need to declare in Actor class so that StudentWorld can access this virtual method
-void Actor::getAnnoyed(bool isCompletelyAnnoyed)
+void Actor::getAnnoyed(char cause)
 {}
 
 // DIRT IMPLEMENTATION //
@@ -222,9 +223,9 @@ void FrackMan::addGold()
 	m_gold++;
 }
 
-void FrackMan::getAnnoyed(bool isCompletelyAnnoyed)
+void FrackMan::getAnnoyed(char cause)
 {
-	if (isCompletelyAnnoyed)
+	if (cause == 'B')
 	{
 		setDead();
 		return;
@@ -291,9 +292,15 @@ void Boulder::doSomething()
 		{
 			moveTo(getX(), getY() - 1);
 
-			if (getWorld()->isCollidingWithProtester(getX(), getY()))
+			if (getWorld()->isCollidingWithAProtester(getX(), getY()) == 1)
 			{
-				getWorld()->annoyProtester(getX(), getY(), true);
+				getWorld()->annoyProtester(getX(), getY(), 'B');
+				getWorld()->increaseScore(500);
+			}
+
+			if (getWorld()->isCollidingWithAProtester(getX(), getY()) == 2)
+			{
+				getWorld()->annoyHardcoreProtester(getX(), getY(), 'B');
 				getWorld()->increaseScore(500);
 			}
 
@@ -346,9 +353,15 @@ void Squirt::doSomething()
 	{
 		return;
 	}
-	else if (getWorld()->isCollidingWithProtester(getX(), getY()))
+	else if (getWorld()->isCollidingWithAProtester(getX(), getY()) == 1)
 	{
-		getWorld()->annoyProtester(getX(), getY(), false);
+		getWorld()->annoyProtester(getX(), getY(), 'S');
+		setDead();
+		return;
+	}
+	else if (getWorld()->isCollidingWithAProtester(getX(), getY()) == 2)
+	{
+		getWorld()->annoyHardcoreProtester(getX(), getY(), 'S');
 		setDead();
 		return;
 	}
@@ -452,12 +465,24 @@ void GoldNugget::doSomething()
 		getWorld()->increaseScore(10);
 		getFracker()->addGold();
 	}
-	else if (canFrackManGet == false && getWorld()->isCollidingWithProtester(getX(), getY())) 
+	else if (canFrackManGet == false) 
 	{
-		setDead();
-		GameController::getInstance().playSound(SOUND_PROTESTER_FOUND_GOLD);
-		getWorld()->annoyProtester(getX(), getY(), true); // how to only annoy one protester?
-		getWorld()->increaseScore(25);
+		// if gold is within grabbing distance of a Regular Protester
+		if (getWorld()->isCollidingWithAProtester(getX(), getY()) == 1)
+		{
+			setDead();
+			GameController::getInstance().playSound(SOUND_PROTESTER_FOUND_GOLD);
+			getWorld()->annoyProtester(getX(), getY(), 'G'); // how to only annoy one protester?
+			getWorld()->increaseScore(25);
+		}
+		// if gold is within grabbing distance of a Hardcore Protester
+		else if (getWorld()->isCollidingWithAProtester(getX(), getY()) == 2)
+		{
+			setDead();
+			GameController::getInstance().playSound(SOUND_PROTESTER_FOUND_GOLD);
+			getWorld()->annoyHardcoreProtester(getX(), getY(), 'G');
+			getWorld()->increaseScore(50);
+		}
 	}
 
 	if (!isPermanentState)
@@ -542,8 +567,8 @@ void WaterPool::doSomething()
 Protester::Protester(int ID, int hp, StudentWorld* world)
 	: LivingActor(ID, 60, 60, left, 1.0, 0, world, hp), leaveField(false), hasShouted(false), canTurn(true), turnCounter(0)
 {
-	numSquaresToMove = getWorld()->randInt(8, 60);
-	tickCounter = getWorld()->max(0, 3 - getWorld()->getLevel() / 4);
+	setNumSquaresToMove();
+	setTickCounter();
 	setVisible(true);
 }
 
@@ -562,14 +587,14 @@ void Protester::takeStep(Direction dir)
 		moveTo(getX(), getY() - 1);
 }
 
-void Protester::getAnnoyed(bool isCompletelyAnnoyed)
+void Protester::getAnnoyed(char cause)
 {
 	// if Protester is Completely Annoyed, immediately set leavefield to true
-	if (isCompletelyAnnoyed)
-		leaveField = true;
+	if (cause == 'B' || cause == 'G')
+		setLeaveField(true);
 
 	// if Protester is already in leave the field state, can't be further annoyed
-	if (leaveField == true)
+	if (getLeaveField() == true)
 	{
 		return;
 	}
@@ -582,13 +607,13 @@ void Protester::getAnnoyed(bool isCompletelyAnnoyed)
 	if (getHP() > 0)
 	{
 		GameController::getInstance().playSound(SOUND_PROTESTER_ANNOYED);
-		tickCounter = getWorld()->max(50, 100 - getWorld()->getLevel() * 10);
+		setTickCounter(getWorld()->max(50, 100 - getWorld()->getLevel() * 10));
 	}
 	else 
 	{
-		leaveField = true;
+		setLeaveField(true);
 		GameController::getInstance().playSound(SOUND_PROTESTER_GIVE_UP);
-		tickCounter = 0;
+		setTickCounter(0);
 		getWorld()->increaseScore(100);
 	}
 }
@@ -600,43 +625,35 @@ void Protester::doSomething()
 		return;
 
 	// if Protester isn't in rest state, update turn counter (what about when it is immobilized? ask professor)
-	if (tickCounter <= 0)
+	if (getTickCounter() <= 0)
 	{
-		if (turnCounter > 0)
-		{
-			turnCounter--;
-		}
-		else if (canTurn == false)
-		{
-			canTurn = true;
-		}
+		updateTurnCounter();
 	}
 
-	// hasShouted is only true after the Protester gets immobilized. After 15 non resting ticks have passed, reset the shout counter 
-	if (hasShouted == true)
-		hasShouted = false;
+	// hasShouted is only true after the Protester gets immobilized. After 15 non resting ticks have passed, reset hasShouted
+	if (getHasShouted() == true)
+		setHasShouted(false);
 
 	// if Protesters is in rest state
-	if (tickCounter > 0)
+	if (getTickCounter() > 0)
 	{
-		tickCounter--;
+		setTickCounter(getTickCounter() - 1);
 		return;
 	}
-	else if (leaveField == true)
+	else if (getLeaveField() == true)
 	{
 		if (getX() == 60 && getY() == 60)
 			setDead();
 		// call a function that finds the next best step for it to take towards the exit
 		// call moveTo function
-		tickCounter = gettickCounter();
+		setTickCounter();
 		return;
 	}
-	else if (getWorld()->isWithinShoutingDistance(getX(), getY()) && getWorld()->isFacingFrackMan(getX(), getY(), getDirection()) && hasShouted == false)
+	else if (getWorld()->isWithinShoutingDistance(getX(), getY()) && getWorld()->isFacingFrackMan(getX(), getY(), getDirection()) && getHasShouted() == false)
 	{
-		GameController::getInstance().playSound(SOUND_PROTESTER_YELL);
-		getWorld()->annoyFrackMan(false);
-		hasShouted = true;
-		tickCounter = 15 * gettickCounter(); // immobilize protester for 15 non resting ticks
+		shout();
+		setTickCounter();
+		setTickCounter(15 * getTickCounter());
 		return;
 	}
 	else if (getWorld()->isInLineOfSight(getX(), getY()))
@@ -650,59 +667,152 @@ void Protester::doSomething()
 		{
 			setDirection(getWorld()->faceTheFrack(getX(), getY()));
 		}
-		numSquaresToMove = 0;
-		tickCounter = gettickCounter();
+		setNumSquaresToMove(0); 
+		setTickCounter();
 		return;
 	}
 	else
 	{
-		numSquaresToMove--;
-		if (numSquaresToMove <= 0)
+		setNumSquaresToMove(getNumSquaresToMove() - 1);
+		if (getNumSquaresToMove() <= 0)
 		{
-			Direction dir;
-			dir = getWorld()->getRandDir();
-
-			while (!getWorld()->canStepHere(getX(), getY(), dir))
-			{
-				dir = getWorld()->getRandDir();
-			}
-			setDirection(dir);
-			numSquaresToMove = getWorld()->randInt(8, 60);
+			setDirection(getViableDirection());
+			setNumSquaresToMove();
 		}
 		else
 		{
 			Direction dir = getWorld()->canTurn(getX(), getY(), getDirection());
 			if (dir != none)
 			{
-				if (canTurn == true)
+				if (getCanTurn() == true)
 				{
 					setDirection(dir);
-					numSquaresToMove = getWorld()->randInt(8, 60);
-					turnCounter = 200;
-					canTurn = false;
+					setNumSquaresToMove();
+					setTurnCounter(200); 
+					setCanTurn(false);
 				}
 			}
 		}
 
-		// continue with step 8
 		if (getWorld()->canStepHere(getX(), getY(), getDirection()))
 			takeStep(getDirection());
 		else
-			numSquaresToMove = 0;
+			setNumSquaresToMove(0);
 		
-		tickCounter = gettickCounter();
+		setTickCounter();
 		return;
 	}	
 }
 
-bool Protester::isProtester()
+int Protester::isProtester()
 {
-	return true;
+	// if its leaveField member is true, then treat it as if it isn't a Protester, so it can't get annoyed further 
+	if (getLeaveField() == false)
+		return 1;
+	return 0;
 }
 
-int Protester::gettickCounter() const
+void Protester::setLeaveField(bool shouldILeave)
 {
-	return getWorld()->max(0, 3 - getWorld()->getLevel() / 4);
+	leaveField = shouldILeave;
+}
+
+bool Protester::getLeaveField() const
+{
+	return leaveField;
+}
+
+void Protester::setNumSquaresToMove()
+{
+	numSquaresToMove = getWorld()->randInt(8, 60);
+}
+
+void Protester::setNumSquaresToMove(int N)
+{
+	numSquaresToMove = N;
+}
+
+int Protester::getNumSquaresToMove() const
+{
+	return numSquaresToMove;
+}
+
+// overload, if it needs to be set it will take in an int
+void Protester::setTickCounter(int N)
+{
+	tickCounter = N;
+}
+
+// otherwise, it will just set it to the default counter
+void Protester::setTickCounter()
+{
+	tickCounter = getWorld()->max(0, 3 - getWorld()->getLevel() / 4);
+}
+
+int Protester::getTickCounter() const
+{
+	return tickCounter;
+}
+
+void Protester::setHasShouted(bool shoutedyet)
+{
+	hasShouted = shoutedyet;
+}
+
+bool Protester::getHasShouted() const
+{
+	return hasShouted;
+}
+
+void Protester::setCanTurn(bool canITurn)
+{
+	canTurn = canITurn;
+}
+
+bool Protester::getCanTurn() const
+{
+	return canTurn;
+}
+
+void Protester::setTurnCounter(int counter)
+{
+	turnCounter = counter;
+}
+
+int Protester::getTurnCounter() const
+{
+	return turnCounter;
+}
+
+void Protester::updateTurnCounter()
+{
+	if (getTurnCounter() > 0)
+	{
+		setTurnCounter(getTurnCounter() - 1);
+	}
+	else if (getCanTurn() == false)
+	{
+		setCanTurn(true);
+	}
+}
+
+void Protester::shout()
+{
+	GameController::getInstance().playSound(SOUND_PROTESTER_YELL);
+	getWorld()->annoyFrackMan(false);
+	setHasShouted(true);
+}
+
+GraphObject::Direction Protester::getViableDirection()
+{
+	Direction dir;
+	dir = getWorld()->getRandDir();
+
+	while (!getWorld()->canStepHere(getX(), getY(), dir))
+	{
+		dir = getWorld()->getRandDir();
+	}
+	return dir;
 }
 
 // HARDCORE PROTESTER IMPLEMENTATION //
@@ -710,26 +820,64 @@ int Protester::gettickCounter() const
 HardcoreProtester::HardcoreProtester(int ID, int HP, StudentWorld* world)
 	: Protester(IID_HARD_CORE_PROTESTER, 20, world)
 {
-	tickCounter = gettickCounter();
+	setTickCounter();
 }
 
 HardcoreProtester::~HardcoreProtester()
 {}
 
-void HardcoreProtester::getAnnoyed(bool isCompletelyAnnoyed)
+int HardcoreProtester::isProtester()
 {
+	// if its leaveField member is true, then treat it as if it isn't a Protester, so it can't get annoyed further 
+	if (getLeaveField() == false)
+		return 2;
+	return 0;
+}
 
+void HardcoreProtester::getAnnoyed(char cause)
+{
+	if (cause == 'G')
+	{
+		// just stare and return
+		setTickCounter(getWorld()->max(50, 100 - getWorld()->getLevel() * 10));
+		return;
+	}
+	else if (cause == 'S')
+	{
+		if (getHP() - 2 <= 0)
+		{
+			setLeaveField(true);
+			GameController::getInstance().playSound(SOUND_PROTESTER_GIVE_UP);
+			setTickCounter(0);
+			getWorld()->increaseScore(250);
+			return;
+		}
+		else
+		{
+			Protester::getAnnoyed(cause);
+		}
+	}
+	else
+	{
+		Protester::getAnnoyed(cause);
+	}
 }
 
 void HardcoreProtester::doSomething()
 {
-	// make methods out of protesters doSomething, and call them individually here, and add the one new change within this body of code
-	if (!isStillAlive())
-		return;
-
-	if (tickCounter > 0)
+	/*if (!getWorld()->isWithinShoutingDistance(getX(), getY()))
 	{
-		tickCounter--;
+		int M = 16 * getWorld()->getLevel() * 2;
+		// if he is <= M legal steps away from Frackman
+		// determine which direction to face to get closer to frackman
+		// setDirection(this dir)
+		// takeStep(getDirection());
+
+		setTickCounter();
 		return;
 	}
+	else
+	{*/
+		Protester::doSomething();
+	//}
 }

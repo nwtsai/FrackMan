@@ -93,6 +93,9 @@ int StudentWorld::init()
 	// add a Protester
 	addProtester();
 
+	// add a Hardcore Protester
+	addHardcoreProtester();
+
 	return GWSTATUS_CONTINUE_GAME;
 }
 
@@ -118,7 +121,6 @@ int StudentWorld::move()
 			if (m_barrelsLeft == 0)
 			{
 				GameController::getInstance().playSound(SOUND_FINISHED_LEVEL);
-				advanceToNextLevel();
 				return GWSTATUS_FINISHED_LEVEL;
 			}
 		}
@@ -318,31 +320,52 @@ bool StudentWorld::isCollidingWithBoulder(int x, int y)
 	return false;
 }
 
-bool StudentWorld::isCollidingWithProtester(int x, int y)
+int StudentWorld::isCollidingWithAProtester(int x, int y)
 {
 	vector<Actor*>::iterator p = m_actors.begin();
 	while (p != m_actors.end())
 	{
-		// if the actor is a Protester
-		if ((*p)->isProtester())
+		// if the actor is a Regular Protester
+		if ((*p)->isProtester() == 1)
 		{
 			if (isCollidingWith(x, y, *p))
-				return true;
+				return 1;
+		}
+		// if the actor is a Hardcore Protester
+		else if ((*p)->isProtester() == 2)
+		{
+			if (isCollidingWith(x, y, *p))
+				return 2;
 		}
 		p++;
 	}
-	return false;
+	// if the actor is not any type of protester
+	return 0;
 }
 
-void StudentWorld::annoyProtester(int objX, int objY, bool isCompletelyAnnoyed)
+void StudentWorld::annoyProtester(int objX, int objY, char cause)
 {
 	vector<Actor*>::iterator p = m_actors.begin();
 	while (p != m_actors.end())
 	{
 		// if the actor is a Protester
-		if ((*p)->isProtester() && isCollidingWithProtester(objX, objY))
+		if ((*p)->isProtester() == 1 && isCollidingWithAProtester(objX, objY) == 1)
 		{
-			(*p)->getAnnoyed(isCompletelyAnnoyed);
+			(*p)->getAnnoyed(cause);
+		}
+		p++;
+	}
+}
+
+void StudentWorld::annoyHardcoreProtester(int objX, int objY, char cause)
+{
+	vector<Actor*>::iterator p = m_actors.begin();
+	while (p != m_actors.end())
+	{
+		// if the actor is a Hardcore Protester
+		if ((*p)->isProtester() == 2 && isCollidingWithAProtester(objX, objY) == 2)
+		{
+			(*p)->getAnnoyed(cause);
 		}
 		p++;
 	}
@@ -499,9 +522,9 @@ bool StudentWorld::isInLineOfSight(int x, int y)
 	return true;
 }
 
-void StudentWorld::annoyFrackMan(bool isCompletelyAnnoyed)
+void StudentWorld::annoyFrackMan(char cause)
 {
-	fracker->getAnnoyed(isCompletelyAnnoyed);
+	fracker->getAnnoyed(cause);
 }
 
 void StudentWorld::destroyDirt(int x, int y)
@@ -716,6 +739,12 @@ void StudentWorld::addProtester()
 {
 	Protester* pro = new Protester(IID_PROTESTER, 5, this);
 	m_actors.push_back(pro);
+}
+
+void StudentWorld::addHardcoreProtester()
+{
+	HardcoreProtester* Hpro = new HardcoreProtester(IID_HARD_CORE_PROTESTER, 20, this);
+	m_actors.push_back(Hpro);
 }
 
 int StudentWorld::min(int a, int b)

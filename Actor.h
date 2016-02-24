@@ -18,8 +18,8 @@ public:
 	virtual bool isStillAlive();
 	virtual void setDead();
 	virtual bool doesThisBlock();
-	virtual bool isProtester();
-	virtual void getAnnoyed(bool isCompletelyAnnoyed);
+	virtual int isProtester();
+	virtual void getAnnoyed(char cause);
 private:
 	bool m_alive;
 };
@@ -76,7 +76,7 @@ public:
 	int getSquirts() const;
 	int getsCharges() const;
 	int getGold() const;
-	virtual void getAnnoyed(bool isCompletelyAnnoyed);
+	virtual void getAnnoyed(char cause);
 	
 	void addSquirts();
 	void addCharges();
@@ -177,10 +177,28 @@ public:
 	Protester(int ID, int HP, StudentWorld* world);
 	~Protester();
 	void takeStep(Direction dir);
-	virtual void getAnnoyed(bool isCompletelyAnnoyed);
+	virtual void getAnnoyed(char cause);
 	virtual void doSomething();
-	virtual bool isProtester();
-	int gettickCounter() const;
+	virtual int isProtester();
+
+	void setLeaveField(bool shouldILeave);
+	bool getLeaveField() const;
+	void setNumSquaresToMove();
+	void setNumSquaresToMove(int N);
+	int getNumSquaresToMove() const;
+	void setTickCounter(int N); // overload, if it needs to be set it will take in an int
+	void setTickCounter();	   // otherwise, it will just set it to the default counter
+	int getTickCounter() const;
+	void setHasShouted(bool shoutedyet);
+	bool getHasShouted() const;
+	void setCanTurn(bool canITurn);
+	bool getCanTurn() const;
+	void setTurnCounter(int counter);
+	int getTurnCounter() const;
+
+	void updateTurnCounter();
+	void shout();
+	Direction getViableDirection();
 private:
 	bool leaveField;
 	int numSquaresToMove;
@@ -197,7 +215,8 @@ class HardcoreProtester : public Protester
 public:
 	HardcoreProtester(int ID, int HP, StudentWorld* world);
 	~HardcoreProtester();
-	virtual void getAnnoyed(bool isCompletelyAnnoyed);
+	virtual int isProtester();
+	virtual void getAnnoyed(char cause);
 	virtual void doSomething();
 private:
 	int tickCounter;

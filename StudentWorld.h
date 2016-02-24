@@ -34,15 +34,16 @@ public:
 	bool isThereBoulderInThisBox(int x, int y);
 	bool isThereBoulderUnderMe(int x, int y);
 	bool isCollidingWithBoulder(int x, int y);
-	bool isCollidingWithProtester(int x, int y);
-	void annoyProtester(int objX, int objY, bool isCompletelyAnnoyed);
+	int isCollidingWithAProtester(int x, int y);
+	void annoyProtester(int objX, int objY, char cause);
+	void annoyHardcoreProtester(int objX, int objY, char cause);
 	bool isWithinShoutingDistance(int x, int y);
 	bool isFacingFrackMan(int x, int y, GraphObject::Direction dir);
 	GraphObject::Direction faceTheFrack(int x, int y);
 	GraphObject::Direction getRandDir();
 	GraphObject::Direction canTurn(int x, int y, GraphObject::Direction dir); // returns none if can't turn
 	bool isInLineOfSight(int x, int y);
-	void annoyFrackMan(bool isCompletelyAnnoyed);
+	void annoyFrackMan(char cause);
 	void destroyDirt(int x, int y);
 	void removeDeadObjects();
 	bool isBlocked(int x, int y);
@@ -57,6 +58,7 @@ public:
 	void addWaterPool();
 	void insertSquirt(int x, int y, GraphObject::Direction dir);
 	void addProtester();
+	void addHardcoreProtester();
 
 	int min(int a, int b);
 	int max(int a, int b);
