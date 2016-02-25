@@ -1,7 +1,7 @@
-#include "Actor.h"
-#include "StudentWorld.h"
-#include "GameController.h"
 #include "GraphObject.h"
+#include "GameController.h"
+#include "StudentWorld.h"
+#include "Actor.h"
 
 // ACTOR IMPLEMENTATION // 
 
@@ -126,7 +126,7 @@ void FrackMan::doSomething()
 			{
 				GameController::getInstance().playSound(SOUND_PLAYER_SQUIRT);
 				getWorld()->insertSquirt(getX(), getY(), getDirection());
-				//m_squirts--;
+				m_squirts--;
 			}
 			break;
 		case 'z':
@@ -288,15 +288,13 @@ void Boulder::doSomething()
 		{
 			moveTo(getX(), getY() - 1);
 
-			if (getWorld()->isCollidingWithAProtester(getX(), getY()) == 1)
+			if (getWorld()->annoyAProtester(getX(), getY(), 'B') == 1)
 			{
-				getWorld()->annoyProtester(getX(), getY(), 'B');
 				getWorld()->increaseScore(500);
 			}
 
-			if (getWorld()->isCollidingWithAProtester(getX(), getY()) == 2)
+			if (getWorld()->annoyAProtester(getX(), getY(), 'B') == 2)
 			{
-				getWorld()->annoyHardcoreProtester(getX(), getY(), 'B');
 				getWorld()->increaseScore(500);
 			}
 
@@ -329,6 +327,11 @@ Squirt::~Squirt()
 
 void Squirt::doSomething()
 {
+	if (!isStillAlive())
+	{
+		return;
+	}
+
 	// do nothing on first tick so that initial image shows up
 	if (isFirstTick)
 	{
@@ -336,19 +339,13 @@ void Squirt::doSomething()
 		return;
 	}
 
-	if (!isStillAlive())
+	else if (getWorld()->annoyAProtester(getX(), getY(), 'S') == 1)
 	{
-		return;
-	}
-	else if (getWorld()->isCollidingWithAProtester(getX(), getY()) == 1)
-	{
-		getWorld()->annoyProtester(getX(), getY(), 'S');
 		setDead();
 		return;
 	}
-	else if (getWorld()->isCollidingWithAProtester(getX(), getY()) == 2)
+	else if (getWorld()->annoyAProtester(getX(), getY(), 'S') == 2)
 	{
-		getWorld()->annoyHardcoreProtester(getX(), getY(), 'S');
 		setDead();
 		return;
 	}
@@ -389,9 +386,7 @@ void Squirt::doSomething()
 
 Barrel::Barrel(int x, int y, StudentWorld* world, FrackMan* fracker)
 	: Object(IID_BARREL, x, y, right, 1.0, 2, world, fracker) 
-{
-	setVisible(true); // for testing only, delete after
-}
+{}
 
 Barrel::~Barrel()
 {}
@@ -422,7 +417,6 @@ GoldNugget::GoldNugget(int x, int y, bool isPerm, StudentWorld* world, FrackMan*
 {
 	if (isPermanentState)
 	{
-		setVisible(true); // for testing only, change to false later
 		canFrackManGet = true;
 	}
 	else
@@ -455,19 +449,17 @@ void GoldNugget::doSomething()
 	else if (canFrackManGet == false) 
 	{
 		// if gold is within grabbing distance of a Regular Protester
-		if (getWorld()->isCollidingWithAProtester(getX(), getY()) == 1)
+		if (getWorld()->annoyAProtester(getX(), getY(), 'G') == 1)
 		{
 			setDead();
 			GameController::getInstance().playSound(SOUND_PROTESTER_FOUND_GOLD);
-			getWorld()->annoyProtester(getX(), getY(), 'G'); // how to only annoy one protester?
 			getWorld()->increaseScore(25);
 		}
 		// if gold is within grabbing distance of a Hardcore Protester
-		else if (getWorld()->isCollidingWithAProtester(getX(), getY()) == 2)
+		else if (getWorld()->annoyAProtester(getX(), getY(), 'G') == 2)
 		{
 			setDead();
 			GameController::getInstance().playSound(SOUND_PROTESTER_FOUND_GOLD);
-			getWorld()->annoyHardcoreProtester(getX(), getY(), 'G');
 			getWorld()->increaseScore(50);
 		}
 	}
@@ -594,7 +586,7 @@ void Protester::getAnnoyed(char cause)
 	if (getHP() > 0)
 	{
 		GameController::getInstance().playSound(SOUND_PROTESTER_ANNOYED);
-		setTickCounter(getWorld()->max(50, 100 - getWorld()->getLevel() * 10));
+		setTickCounter(45);
 	}
 	else 
 	{
@@ -849,6 +841,7 @@ int HardcoreProtester::isProtester()
 
 void HardcoreProtester::getAnnoyed(char cause)
 {
+	// if caused by gold
 	if (cause == 'G')
 	{
 		// just stare and return
@@ -877,22 +870,19 @@ void HardcoreProtester::doSomething()
 
 	if (!normalMove1())
 	{	
+		Direction dir = none;
+		int tempX = getX();
+		int tempY = getY();
+		dir = getWorld()->getCloseToFrack(tempX, tempY);
+
 		// if he is <= M legal steps away from Frackman
 		// determine which direction to face to get closer to frackman
 		// setDirection(this dir)
 		// takeStep(getDirection());
-		if (!getWorld()->isWithinShoutingDistance(getX(), getY())) // && getWorld()->getStepMap(getX(), getY()) <= M)
+		if (!getWorld()->isWithinShoutingDistance(getX(), getY()) && dir != none) 
 		{
-			Direction dir = none;
-			int tempX = getX();
-			int tempY = getY();
-			dir = getWorld()->getCloseToFrack(tempX, tempY);
-			if (dir != none)
-			{
-				setDirection(dir);
-				moveTo(tempX, tempY);
-			}
-
+			setDirection(dir);
+			moveTo(tempX, tempY);
 			setTickCounter();
 			return;
 		}

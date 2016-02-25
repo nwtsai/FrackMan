@@ -1,13 +1,13 @@
+#include "GameController.h"
+#include "Actor.h"
 #include "StudentWorld.h"
+#include "GraphObject.h"
 #include <string>
 #include <vector>
 #include <cstdlib>
-#include "Actor.h"
-#include "GameController.h"
 #include <cmath>
 #include <iostream>
 #include <iomanip>
-#include "GraphObject.h"
 #include <queue>
 
 using namespace std;
@@ -40,7 +40,6 @@ StudentWorld::~StudentWorld()
 				delete m_dirt[x][y];
 				m_dirt[x][y] = nullptr;
 			}
-				
 		}
 	}
 
@@ -49,11 +48,11 @@ StudentWorld::~StudentWorld()
 
 int StudentWorld::init()
 {
-	maxProtesters = min(15, 2 + getLevel() * 1.5);
-	m_barrelsLeft = min(2 + getLevel(), 20);
+	maxNumProtesters = min(15, (int)(2 + getLevel() * 1.5));
+	numBarrels = min(2 + getLevel(), 20);
 	numProtesters = 0;
 	protesterTick = 0;
-	m_proxHardcore = 16 + getLevel() * 2;
+	hardCoreMaxVal = 16 + getLevel() * 2;
 	fracker = nullptr;
 
 	// initialize the dirt
@@ -90,22 +89,29 @@ int StudentWorld::init()
 int StudentWorld::move()
 {
 	protesterTick--;
-	updateMap(60, 60, grid, INT16_MAX);
-	updateMap(fracker->getX(), fracker->getY(), mapToFracker, m_proxHardcore);
+
+	solveGrid(60, 60, grid, INT16_MAX);
+	solveGrid(fracker->getX(), fracker->getY(), frackGrid, hardCoreMaxVal);
 
 	// update status text
 	setDisplayText();
 	
-	if (protesterTick <= 0 && numProtesters < maxProtesters) 
+	// if allowed to add protester, add a protester, increment number of protesters, and reset the protesterTick
+	if (protesterTick <= 0 && numProtesters < maxNumProtesters) 
 	{
 		addProtester();
 		protesterTick = max(25, 200 - getLevel());
 		numProtesters++;
 	}
+
+	// add Sonar or Water
+	addSonarOrWater();
 	
-	// ask every object to do something
+	// ask frackman to do something
 	fracker->doSomething();
-	for (int i = 0; i < m_actors.size(); i++)
+
+	// ask every object to do something
+	for (size_t i = 0; i < m_actors.size(); i++)
 	{
 		if (m_actors.at(i)->isStillAlive())
 		{
@@ -117,7 +123,7 @@ int StudentWorld::move()
 				return GWSTATUS_PLAYER_DIED;
 			}
 
-			if (m_barrelsLeft == 0)
+			if (numBarrels == 0)
 			{
 				GameController::getInstance().playSound(SOUND_FINISHED_LEVEL);
 				return GWSTATUS_FINISHED_LEVEL;
@@ -125,21 +131,7 @@ int StudentWorld::move()
 		}
 	}
 
-	// delete actors that need to be deleted and remove them from the vector
 	removeDeadObjects();
-
-	int G = getLevel() * 25 + 300;
-	if (randInt(1, G) == 1)
-	{
-		if (randInt(1, 5) == 1)
-		{
-			addSonarKit();
-		}
-		else
-		{
-			addWaterPool();
-		}
-	}
 
 	return GWSTATUS_CONTINUE_GAME;
 }
@@ -188,9 +180,10 @@ bool StudentWorld::isCloseToAnyActor(int x, int y)
 	return false;
 }
 
-bool StudentWorld::isCollidingWith(int x, int y, Actor* obj)
+bool StudentWorld::isCollidingWith(int x, int y, Actor* act)
 {
-	return isWithinRadius(x, y, obj->getX(), obj->getY(), 3.0);
+	//cout << x << " " << y << " " << act->getX() << " " << act->getY() << endl;
+	return isWithinRadius(x, y, act->getX(), act->getY(), 3.0);
 }
 
 bool StudentWorld::canMoveHere(int x, int y)
@@ -334,7 +327,7 @@ bool StudentWorld::isCollidingWithBoulder(int x, int y)
 	return false;
 }
 
-int StudentWorld::isCollidingWithAProtester(int x, int y)
+int StudentWorld::annoyAProtester(int x, int y, char cause)
 {
 	vector<Actor*>::iterator p = m_actors.begin();
 	while (p != m_actors.end())
@@ -343,46 +336,24 @@ int StudentWorld::isCollidingWithAProtester(int x, int y)
 		if ((*p)->isProtester() == 1)
 		{
 			if (isCollidingWith(x, y, *p))
+			{
+				(*p)->getAnnoyed(cause);
 				return 1;
+			}
 		}
 		// if the actor is a Hardcore Protester
 		else if ((*p)->isProtester() == 2)
 		{
 			if (isCollidingWith(x, y, *p))
+			{
+				(*p)->getAnnoyed(cause);
 				return 2;
+			}
 		}
 		p++;
 	}
 	// if the actor is not any type of protester
 	return 0;
-}
-
-void StudentWorld::annoyProtester(int objX, int objY, char cause)
-{
-	vector<Actor*>::iterator p = m_actors.begin();
-	while (p != m_actors.end())
-	{
-		// if the actor is a Protester
-		if ((*p)->isProtester() == 1 && isCollidingWithAProtester(objX, objY) == 1)
-		{
-			(*p)->getAnnoyed(cause);
-		}
-		p++;
-	}
-}
-
-void StudentWorld::annoyHardcoreProtester(int objX, int objY, char cause)
-{
-	vector<Actor*>::iterator p = m_actors.begin();
-	while (p != m_actors.end())
-	{
-		// if the actor is a Hardcore Protester
-		if ((*p)->isProtester() == 2 && isCollidingWithAProtester(objX, objY) == 2)
-		{
-			(*p)->getAnnoyed(cause);
-		}
-		p++;
-	}
 }
 
 bool StudentWorld::isWithinShoutingDistance(int x, int y)
@@ -558,24 +529,6 @@ void StudentWorld::destroyDirt(int x, int y)
 	}
 }
 
-void StudentWorld::removeDeadObjects()
-{
-	vector<Actor*>::iterator p = m_actors.begin();
-	while (p != m_actors.end())
-	{
-		if ((*p)->isStillAlive() == false)
-		{
-			vector<Actor*>::iterator temp = p;
-			delete *p;
-			p = m_actors.erase(temp);
-		}
-		else
-		{
-			p++;
-		}
-	}
-}
-
 GraphObject::Direction StudentWorld::protesterGiveUp(int &x, int &y)
 {
 	if (grid[x][y] == Actor::up)
@@ -604,22 +557,22 @@ GraphObject::Direction StudentWorld::protesterGiveUp(int &x, int &y)
 
 GraphObject::Direction StudentWorld::getCloseToFrack(int &x, int &y) 
 {
-	if (mapToFracker[x][y] == Actor::up) 
+	if (frackGrid[x][y] == Actor::up) 
 	{
 		y++;
 		return Actor::up; // up
 	}
-	else if (mapToFracker[x][y] == Actor::right) 
+	else if (frackGrid[x][y] == Actor::right) 
 	{
 		x++;
 		return Actor::right; // right
 	}
-	else if (mapToFracker[x][y] == Actor::down) 
+	else if (frackGrid[x][y] == Actor::down) 
 	{
 		y--;
 		return Actor::down; // down
 	}
-	else if (mapToFracker[x][y] == Actor::left) 
+	else if (frackGrid[x][y] == Actor::left) 
 	{
 		x--;
 		return Actor::left; // left
@@ -630,20 +583,11 @@ GraphObject::Direction StudentWorld::getCloseToFrack(int &x, int &y)
 
 void StudentWorld::addBoulders()
 {
-	int numBoulders = max(getLevel() / 2 + 2, 6);
+	int numBoulders = min(getLevel() / 2 + 2, 6);
 	for (int boul = 0; boul < numBoulders; boul++)
 	{
 		int randX = randInt(0, 60);
 		int randY = randInt(20, 56);
-		
-		/*for (int a = 0; a < m_actors.size(); a++)
-		{
-			while (isCollidingWith(randX, randY, m_actors.at(a)) || (randX >= 26 && randX <= 33))
-			{
-				randX = randInt(0, 60);
-				randY = randInt(20, 56);
-			}
-		}*/
 
 		// If it is the first Actor, check if it is in mine shaft
 		while (randX >= 26 && randX <= 33)
@@ -671,7 +615,7 @@ void StudentWorld::addBoulders()
 
 void StudentWorld::addNuggets()
 {
-	int numNugs = min(5 - getLevel() / 2, 2);
+	int numNugs = max(5 - getLevel() / 2, 2);
 	for (int nugs = 0; nugs < numNugs; nugs++)
 	{
 		int randX = randInt(0, 60);
@@ -759,6 +703,22 @@ void StudentWorld::addWaterPool()
 	m_actors.push_back(water);
 }
 
+void StudentWorld::addSonarOrWater()
+{
+	int G = getLevel() * 25 + 300;
+	if (randInt(1, G) == 1)
+	{
+		if (randInt(1, 5) == 1)
+		{
+			addSonarKit();
+		}
+		else
+		{
+			addWaterPool();
+		}
+	}
+}
+
 void StudentWorld::insertSquirt(int x, int y, GraphObject::Direction dir)
 {
 	if (dir == GraphObject::left && !isThereDirtInThisBox(x - 4, y) && !isThereBoulderInThisBox(x - 4, y) && x - 4 >= 0)
@@ -788,6 +748,24 @@ void StudentWorld::addProtester()
 	{
 		Protester* pro = new Protester(IID_PROTESTER, 5, this);
 		m_actors.push_back(pro);
+	}
+}
+
+void StudentWorld::removeDeadObjects()
+{
+	vector<Actor*>::iterator p = m_actors.begin();
+	while (p != m_actors.end())
+	{
+		if ((*p)->isStillAlive() == false)
+		{
+			vector<Actor*>::iterator temp = p;
+			delete *p;
+			p = m_actors.erase(temp);
+		}
+		else
+		{
+			p++;
+		}
 	}
 }
 
@@ -823,7 +801,7 @@ void StudentWorld::setDisplayText()
 	int squirts = fracker->getSquirts();
 	int gold = fracker->getGold();
 	int sonar = fracker->getsCharges();
-	int barrelsLeft = m_barrelsLeft;
+	int barrelsLeft = numBarrels;
 
 	string s = formatDisplayText(score, level, lives, health, squirts, gold, sonar, barrelsLeft);
 	setGameStatText(s);
@@ -852,7 +830,7 @@ string StudentWorld::formatDisplayText(int score, int level, int lives, int heal
 	string d = sd.str();
 
 	stringstream se;
-	string wtr = "Water: ";
+	string wtr = "Wtr: ";
 	se << setw(2) << setfill(' ') << squirts;
 	string e = se.str();
 
@@ -886,7 +864,7 @@ bool StudentWorld::isWithinRadius(int x1, int y1, int x2, int y2, double r)
 
 void StudentWorld::reduceBarrels()
 {
-	m_barrelsLeft--;
+	numBarrels--;
 }
 
 FrackMan* StudentWorld::getFrack()
@@ -907,36 +885,41 @@ void StudentWorld::revealCloseObjects(int x, int y)
 	}
 }
 
-void StudentWorld::updateMap(int x, int y, Actor::Direction m[64][64], int r)
+void StudentWorld::solveGrid(int x, int y, Actor::Direction g[64][64], int Manhattanism)
 {
 	for (int i = 0; i < 64; i++) 
 	{
 		for (int j = 0; j < 64; j++) 
 		{
-			m[i][j] = Actor::none;
+			g[i][j] = Actor::none;
 		}
 	}
 
-	queue<Coord> cstack;
-	cstack.push(Coord(x, y, r));
-	while (!cstack.empty()) {
-		Coord a = cstack.front();
-		cstack.pop();
-		if (m[a.r() - 1][a.c()] == 0 && clearOfDirtBoulder(a.r() - 1, a.c()) && a.z() > 0) {
-			cstack.push(Coord(a.r() - 1, a.c(), a.z() - 1));
-			m[a.r() - 1][a.c()] = Actor::right;
+	queue<Coord> gridQueue;
+	gridQueue.push(Coord(x, y, Manhattanism));
+	while (!gridQueue.empty()) 
+	{
+		Coord gridCoord = gridQueue.front();
+		gridQueue.pop();
+		if (g[gridCoord.r() - 1][gridCoord.c()] == 0 && clearOfDirtBoulder(gridCoord.r() - 1, gridCoord.c()) && gridCoord.z() > 0)
+		{
+			gridQueue.push(Coord(gridCoord.r() - 1, gridCoord.c(), gridCoord.z() - 1));
+			g[gridCoord.r() - 1][gridCoord.c()] = Actor::right;
 		}
-		if (m[a.r()][a.c() - 1] == 0 && clearOfDirtBoulder(a.r(), a.c() - 1) && a.z() > 0) {
-			cstack.push(Coord(a.r(), a.c() - 1, a.z() - 1));
-			m[a.r()][a.c() - 1] = Actor::up;
+		if (g[gridCoord.r()][gridCoord.c() - 1] == 0 && clearOfDirtBoulder(gridCoord.r(), gridCoord.c() - 1) && gridCoord.z() > 0)
+		{
+			gridQueue.push(Coord(gridCoord.r(), gridCoord.c() - 1, gridCoord.z() - 1));
+			g[gridCoord.r()][gridCoord.c() - 1] = Actor::up;
 		}
-		if (m[a.r() + 1][a.c()] == 0 && clearOfDirtBoulder(a.r() + 1, a.c()) && a.z() > 0) {
-			cstack.push(Coord(a.r() + 1, a.c(), a.z() - 1));
-			m[a.r() + 1][a.c()] = Actor::left; 
+		if (g[gridCoord.r() + 1][gridCoord.c()] == 0 && clearOfDirtBoulder(gridCoord.r() + 1, gridCoord.c()) && gridCoord.z() > 0)
+		{
+			gridQueue.push(Coord(gridCoord.r() + 1, gridCoord.c(), gridCoord.z() - 1));
+			g[gridCoord.r() + 1][gridCoord.c()] = Actor::left;
 		}
-		if (m[a.r()][a.c() + 1] == 0 && clearOfDirtBoulder(a.r(), a.c() + 1) && a.z() > 0) {
-			cstack.push(Coord(a.r(), a.c() + 1, a.z() - 1));
-			m[a.r()][a.c() + 1] = Actor::down; 
+		if (g[gridCoord.r()][gridCoord.c() + 1] == 0 && clearOfDirtBoulder(gridCoord.r(), gridCoord.c() + 1) && gridCoord.z() > 0)
+		{
+			gridQueue.push(Coord(gridCoord.r(), gridCoord.c() + 1, gridCoord.z() - 1));
+			g[gridCoord.r()][gridCoord.c() + 1] = Actor::down;
 		}
 	}
 }

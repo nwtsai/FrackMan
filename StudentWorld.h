@@ -4,9 +4,9 @@
 #include "GameWorld.h"
 #include "GameConstants.h"
 #include "GraphObject.h"
+#include "Actor.h"
 #include <string>
 #include <vector>
-#include "Actor.h"
 #include <iomanip>
 #include <sstream>
 
@@ -40,8 +40,7 @@ public:
 	bool isFacingFrackMan(int x, int y, GraphObject::Direction dir);
 	bool isInLineOfSight(int x, int y);
 
-	int isCollidingWithAProtester(int x, int y);
-	int canReachFrackMan();
+	int annoyAProtester(int x, int y, char cause);
 	int min(int a, int b);
 	int max(int a, int b);
 	int randInt(int l, int h);
@@ -53,8 +52,6 @@ public:
 	void annoyFrackMan(char cause);
 	void destroyDirt(int x, int y);
 	void revealCloseObjects(int x, int y);
-	void annoyProtester(int objX, int objY, char cause);
-	void annoyHardcoreProtester(int objX, int objY, char cause);
 	
 	GraphObject::Direction faceTheFrack(int x, int y);
 	GraphObject::Direction getRandDir();
@@ -71,22 +68,23 @@ private:
 	void addBarrels();
 	void addSonarKit();
 	void addWaterPool();
+	void addSonarOrWater();
 	void addProtester();
 	void removeDeadObjects();
 	void setDisplayText();
-	void updateMap(int x, int y, GraphObject::Direction m[64][64], int r);
+	void solveGrid(int x, int y, GraphObject::Direction m[64][64], int r);
 
 	Dirt* m_dirt[64][64];
 	vector<Actor*> m_actors;
 	FrackMan* fracker;
 	GraphObject::Direction grid[64][64];
-	GraphObject::Direction mapToFracker[64][64];
+	GraphObject::Direction frackGrid[64][64];
 
-	int m_barrelsLeft;
+	int numBarrels;
 	int protesterTick;
 	int numProtesters;
-	int maxProtesters;
-	int m_proxHardcore;
+	int maxNumProtesters;
+	int hardCoreMaxVal;
 	
 	struct Coord
 	{
