@@ -8,6 +8,7 @@
 #include <iostream>
 #include <iomanip>
 #include "GraphObject.h"
+#include <queue>
 
 using namespace std;
 
@@ -18,40 +19,10 @@ GameWorld* createStudentWorld(string assetDir)
 
 StudentWorld::StudentWorld(std::string assetDir)
 	: GameWorld(assetDir)
-{
-	for (int i = 0; i < 64; i++)
-	{
-		for (int j = 0; j < 60; j++)
-		{
-			m_dirt[i][j] = nullptr;
-		}
-	}
-	m_barrelsLeft = min(2 + getLevel(), 20);
-	fracker = nullptr;
-
-	for (int i = 0; i < 61; i++)
-	{
-		for (int j = 0; j < 61; j++)
-		{
-			dirMap[i][j] = Actor::none;
-		}
-	}
-
-	for (int i = 0; i < 61; i++)
-	{
-		for (int j = 0; j < 61; j++)
-		{
-			stepMap[i][j] = 150;
-		}
-	}
-}
+{}
 
 StudentWorld::~StudentWorld()
 {
-	/*for (int i = 0; i < m_actors.size(); i++)
-		delete m_actors.at(i);
-	m_actors.clear();*/
-
 	vector<Actor*>::iterator p = m_actors.begin();
 	while (p != m_actors.end())
 	{
@@ -78,6 +49,13 @@ StudentWorld::~StudentWorld()
 
 int StudentWorld::init()
 {
+	maxProtesters = min(15, 2 + getLevel() * 1.5);
+	m_barrelsLeft = min(2 + getLevel(), 20);
+	numProtesters = 0;
+	protesterTick = 0;
+	m_proxHardcore = 16 + getLevel() * 2;
+	fracker = nullptr;
+
 	// initialize the dirt
 	for (int r = 0; r < 64; r++)
 	{
@@ -106,20 +84,25 @@ int StudentWorld::init()
 	// initialize the Barrels
 	addBarrels();
 
-	// add a Protester
-	addProtester();
-
-	// add a Hardcore Protester
-	addHardcoreProtester();
-
 	return GWSTATUS_CONTINUE_GAME;
 }
 
 int StudentWorld::move()
 {
+	protesterTick--;
+	updateMap(60, 60, grid, INT16_MAX);
+	updateMap(fracker->getX(), fracker->getY(), mapToFracker, m_proxHardcore);
+
 	// update status text
 	setDisplayText();
-
+	
+	if (protesterTick <= 0 && numProtesters < maxProtesters) 
+	{
+		addProtester();
+		protesterTick = max(25, 200 - getLevel());
+		numProtesters++;
+	}
+	
 	// ask every object to do something
 	fracker->doSomething();
 	for (int i = 0; i < m_actors.size(); i++)
@@ -163,10 +146,6 @@ int StudentWorld::move()
 
 void StudentWorld::cleanUp()
 {
-	/*for (int i = 0; i < m_actors.size(); i++)
-		delete m_actors.at(i);
-	m_actors.clear();*/
-
 	vector<Actor*>::iterator p = m_actors.begin();
 	while (p != m_actors.end())
 	{
@@ -232,22 +211,22 @@ bool StudentWorld::canStepHere(int x, int y, GraphObject::Direction dir)
 {
 	if (dir == Actor::right)
 	{
-		if (isCollidingWithBoulder(x + 1, y) || isThereDirtInThisBox(x + 1, y) || x + 1 > 60)
+		if (!clearOfDirtBoulder(x + 1,y))
 			return false;
 	}
 	else if (dir == Actor::left)
 	{
-		if (isCollidingWithBoulder(x - 1, y) || isThereDirtInThisBox(x - 1, y) || x - 1 < 0)
+		if (!clearOfDirtBoulder(x - 1, y))
 			return false;
 	}
 	else if (dir == Actor::up)
 	{
-		if (isCollidingWithBoulder(x, y + 1) || isThereDirtInThisBox(x, y + 1) || y + 1 > 60)
+		if (!clearOfDirtBoulder(x, y + 1))
 			return false;
 	}
 	else if (dir == Actor::down)
 	{
-		if (isCollidingWithBoulder(x, y - 1) || isThereDirtInThisBox(x, y - 1) || y - 1 < 0)
+		if (!clearOfDirtBoulder(x, y - 1))
 			return false;
 	}
 	return true;
@@ -299,6 +278,25 @@ bool StudentWorld::isThereBoulderInThisBox(int x, int y)
 		p++;
 	}
 	return false;
+}
+
+bool StudentWorld::clearOfDirtBoulder(int x, int y)
+{
+	if (x > 60 || x < 0)
+		return false;
+
+	if (y > 60 || y < 0)
+		return false;
+
+	// checks for dirt
+	if (isThereDirtInThisBox(x, y))
+		return false;
+
+	//checks for boulder
+	if (isCollidingWithBoulder(x, y))
+		return false;
+
+	return true;
 }
 
 bool StudentWorld::isThereBoulderUnderMe(int x, int y)
@@ -578,74 +576,56 @@ void StudentWorld::removeDeadObjects()
 	}
 }
 
-bool StudentWorld::isBlocked(int x, int y)
+GraphObject::Direction StudentWorld::protesterGiveUp(int &x, int &y)
 {
-	if (isThereDirtInThisBox(x, y) || isCollidingWithBoulder(x, y))
-		return true;
-	return false;
-}
-
-void StudentWorld::findBestPathToTopRight()
-{
-	for (int i = 0; i < 61; i++)
+	if (grid[x][y] == Actor::up)
 	{
-		for (int j = 0; j < 61; j++)
-		{
-			dirMap[i][j] = Actor::none;
-			stepMap[i][j] = 150;
-		}
+		y++;
+		return Actor::up; // up
 	}
-
-	findPath(60, 60, Actor::right, 0);
-}
-
-void StudentWorld::findBestPathToHere(int x, int y)
-{
-	for (int i = 0; i < 61; i++)
+	else if (grid[x][y] == Actor::right) 
 	{
-		for (int j = 0; j < 61; j++)
-		{
-			dirMap[i][j] = Actor::none;
-			stepMap[i][j] = 150;
-		}
+		x++;
+		return Actor::right; // right
 	}
-
-	findPath(x, y, Actor::right, 0);
-}
-
-void StudentWorld::findPath(int x, int y, GraphObject::Direction dir, int steps)
-{
-	if (steps < stepMap[x][y] && x >= 0 && x < 61 && y >=0 && y < 61 && !isThereBoulderInThisBox(x, y) && !isThereDirtInThisBox(x, y))
+	else if (grid[x][y] == Actor::down) 
 	{
-		stepMap[x][y] = steps;
-		dirMap[x][y] = dir;
+		y--;
+		return Actor::down; // down
+	}
+	else if (grid[x][y] == Actor::left) 
+	{
+		x--;
+		return Actor::left; // left
 	}
 	else
-		return;
-	findPath(x - 1, y, Actor::right, steps++);
-	findPath(x + 1, y, Actor::left, steps++);
-	findPath(x, y - 1, Actor::up, steps++);
-	findPath(x, y + 1, Actor::down, steps++);
+		return Actor::none;
 }
 
-GraphObject::Direction StudentWorld::getDirMap(int x, int y)
+GraphObject::Direction StudentWorld::getCloseToFrack(int &x, int &y) 
 {
-	return dirMap[x][y];
-}
-
-int StudentWorld::getStepMap(int x, int y)
-{
-	return stepMap[x][y];
-}
-
-int StudentWorld::getFrackerX()
-{
-	return fracker->getX();
-}
-
-int StudentWorld::getFrackerY()
-{
-	return fracker->getY();
+	if (mapToFracker[x][y] == Actor::up) 
+	{
+		y++;
+		return Actor::up; // up
+	}
+	else if (mapToFracker[x][y] == Actor::right) 
+	{
+		x++;
+		return Actor::right; // right
+	}
+	else if (mapToFracker[x][y] == Actor::down) 
+	{
+		y--;
+		return Actor::down; // down
+	}
+	else if (mapToFracker[x][y] == Actor::left) 
+	{
+		x--;
+		return Actor::left; // left
+	}
+	else
+		return Actor::none;
 }
 
 void StudentWorld::addBoulders()
@@ -695,7 +675,7 @@ void StudentWorld::addNuggets()
 	for (int nugs = 0; nugs < numNugs; nugs++)
 	{
 		int randX = randInt(0, 60);
-		int randY = randInt(20, 56);
+		int randY = randInt(0, 56);
 
 		// If it is the first Actor, check if it is in mine shaft
 		while (randX >= 26 && randX <= 33)
@@ -709,7 +689,7 @@ void StudentWorld::addNuggets()
 			if (isCloseToAnyActor(randX, randY) || (randX >= 26 && randX <= 33))
 			{
 				randX = randInt(0, 60);
-				randY = randInt(20, 56);
+				randY = randInt(0, 56);
 			}
 			else
 			{
@@ -732,7 +712,7 @@ void StudentWorld::addBarrels()
 	for (int barrels = 0; barrels < numBarrels; barrels++)
 	{
 		int randX = randInt(0, 60);
-		int randY = randInt(20, 56);
+		int randY = randInt(0, 56);
 
 		// If it is the first Actor, check if it is in mine shaft
 		while (randX >= 26 && randX <= 33)
@@ -746,7 +726,7 @@ void StudentWorld::addBarrels()
 			if (isCloseToAnyActor(randX, randY) || (randX >= 26 && randX <= 33))
 			{
 				randX = randInt(0, 60);
-				randY = randInt(20, 56);
+				randY = randInt(0, 56);
 			}
 			else
 			{
@@ -791,16 +771,24 @@ void StudentWorld::insertSquirt(int x, int y, GraphObject::Direction dir)
 		m_actors.push_back(new Squirt(x, y - 4, dir, this, fracker));
 }
 
-void StudentWorld::addProtester()
+void StudentWorld::decrementProtesterCount()
 {
-	Protester* pro = new Protester(IID_PROTESTER, 5, this);
-	m_actors.push_back(pro);
+	numProtesters--;
 }
 
-void StudentWorld::addHardcoreProtester()
+void StudentWorld::addProtester()
 {
-	HardcoreProtester* Hpro = new HardcoreProtester(IID_HARD_CORE_PROTESTER, 20, this);
-	m_actors.push_back(Hpro);
+	int hardcoreP = min(90, getLevel() * 10 + 30);
+	if (randInt(1, 100) <= hardcoreP)
+	{
+		HardcoreProtester* Hpro = new HardcoreProtester(IID_HARD_CORE_PROTESTER, 20, this);
+		m_actors.push_back(Hpro);
+	}
+	else
+	{
+		Protester* pro = new Protester(IID_PROTESTER, 5, this);
+		m_actors.push_back(pro);
+	}
 }
 
 int StudentWorld::min(int a, int b)
@@ -916,5 +904,39 @@ void StudentWorld::revealCloseObjects(int x, int y)
 			(*p)->setVisible(true);
 		}
 		p++;
+	}
+}
+
+void StudentWorld::updateMap(int x, int y, Actor::Direction m[64][64], int r)
+{
+	for (int i = 0; i < 64; i++) 
+	{
+		for (int j = 0; j < 64; j++) 
+		{
+			m[i][j] = Actor::none;
+		}
+	}
+
+	queue<Coord> cstack;
+	cstack.push(Coord(x, y, r));
+	while (!cstack.empty()) {
+		Coord a = cstack.front();
+		cstack.pop();
+		if (m[a.r() - 1][a.c()] == 0 && clearOfDirtBoulder(a.r() - 1, a.c()) && a.z() > 0) {
+			cstack.push(Coord(a.r() - 1, a.c(), a.z() - 1));
+			m[a.r() - 1][a.c()] = Actor::right;
+		}
+		if (m[a.r()][a.c() - 1] == 0 && clearOfDirtBoulder(a.r(), a.c() - 1) && a.z() > 0) {
+			cstack.push(Coord(a.r(), a.c() - 1, a.z() - 1));
+			m[a.r()][a.c() - 1] = Actor::up;
+		}
+		if (m[a.r() + 1][a.c()] == 0 && clearOfDirtBoulder(a.r() + 1, a.c()) && a.z() > 0) {
+			cstack.push(Coord(a.r() + 1, a.c(), a.z() - 1));
+			m[a.r() + 1][a.c()] = Actor::left; 
+		}
+		if (m[a.r()][a.c() + 1] == 0 && clearOfDirtBoulder(a.r(), a.c() + 1) && a.z() > 0) {
+			cstack.push(Coord(a.r(), a.c() + 1, a.z() - 1));
+			m[a.r()][a.c() + 1] = Actor::down; 
+		}
 	}
 }

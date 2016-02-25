@@ -735,10 +735,20 @@ bool Protester::normalMove1()
 	else if (getLeaveField() == true)
 	{
 		if (getX() == 60 && getY() == 60)
+		{
 			setDead();
+			getWorld()->decrementProtesterCount();
+		}
 
-		getWorld()->findBestPathToTopRight();
-		takeStep((getWorld()->getDirMap(getX(), getY())));
+		Direction dir = none;
+		int tempX = getX();
+		int tempY = getY();
+		dir = getWorld()->protesterGiveUp(tempX, tempY);
+		if (dir != none)
+		{
+			setDirection(dir);
+			moveTo(tempX, tempY);
+		}
 
 		setTickCounter();
 		return true;
@@ -866,15 +876,22 @@ void HardcoreProtester::doSomething()
 	int M = 16 * getWorld()->getLevel() * 2;
 
 	if (!normalMove1())
-	{
+	{	
 		// if he is <= M legal steps away from Frackman
 		// determine which direction to face to get closer to frackman
 		// setDirection(this dir)
 		// takeStep(getDirection());
-		if (!getWorld()->isWithinShoutingDistance(getX(), getY()) && getWorld()->getStepMap(getX(), getY()) <= M)
+		if (!getWorld()->isWithinShoutingDistance(getX(), getY())) // && getWorld()->getStepMap(getX(), getY()) <= M)
 		{
-			//getWorld()->findBestPathToHere(getWorld()->getFrackerX(), getWorld()->getFrackerY());
-			takeStep(getWorld()->getDirMap(getX(), getY()));
+			Direction dir = none;
+			int tempX = getX();
+			int tempY = getY();
+			dir = getWorld()->getCloseToFrack(tempX, tempY);
+			if (dir != none)
+			{
+				setDirection(dir);
+				moveTo(tempX, tempY);
+			}
 
 			setTickCounter();
 			return;
