@@ -57,7 +57,7 @@ public:
 	GraphObject::Direction getRandDir();
 	GraphObject::Direction canTurn(int x, int y, GraphObject::Direction dir); // returns none if can't turn
 	GraphObject::Direction protesterGiveUp(int &x, int &y);
-	GraphObject::Direction getCloseToFrack(int &x, int &y);
+	GraphObject::Direction getIntimateWithFrack(int &x, int &y);
 
 	FrackMan* getFrack();
 	string formatDisplayText(int score, int level, int lives, int health, int squirts, int gold, int sonar, int barrelsLeft);

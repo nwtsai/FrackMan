@@ -555,27 +555,27 @@ GraphObject::Direction StudentWorld::protesterGiveUp(int &x, int &y)
 		return Actor::none;
 }
 
-GraphObject::Direction StudentWorld::getCloseToFrack(int &x, int &y) 
+GraphObject::Direction StudentWorld::getIntimateWithFrack(int &x, int &y) 
 {
 	if (frackGrid[x][y] == Actor::up) 
 	{
 		y++;
-		return Actor::up; // up
+		return Actor::up; 
 	}
 	else if (frackGrid[x][y] == Actor::right) 
 	{
 		x++;
-		return Actor::right; // right
+		return Actor::right; 
 	}
 	else if (frackGrid[x][y] == Actor::down) 
 	{
 		y--;
-		return Actor::down; // down
+		return Actor::down; 
 	}
 	else if (frackGrid[x][y] == Actor::left) 
 	{
 		x--;
-		return Actor::left; // left
+		return Actor::left; 
 	}
 	else
 		return Actor::none;

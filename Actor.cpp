@@ -223,6 +223,7 @@ void FrackMan::getAnnoyed(char cause)
 {
 	if (cause == 'B')
 	{
+		GameController::getInstance().playSound(SOUND_PLAYER_GIVE_UP);
 		setDead();
 		return;
 	}
@@ -569,9 +570,16 @@ void Protester::takeStep(Direction dir)
 void Protester::getAnnoyed(char cause)
 {
 	// if Protester is Completely Annoyed, immediately set leavefield to true
-	if (cause == 'B' || cause == 'G')
+	if (cause == 'B')
+	{
+		GameController::getInstance().playSound(SOUND_PROTESTER_GIVE_UP);
 		setLeaveField(true);
-
+	}
+	else if (cause == 'G')
+	{
+		setLeaveField(true);
+	}
+		
 	// if Protester is already in leave the field state, can't be further annoyed
 	if (getLeaveField() == true)
 	{
@@ -873,7 +881,7 @@ void HardcoreProtester::doSomething()
 		Direction dir = none;
 		int tempX = getX();
 		int tempY = getY();
-		dir = getWorld()->getCloseToFrack(tempX, tempY);
+		dir = getWorld()->getIntimateWithFrack(tempX, tempY);
 
 		// if he is <= M legal steps away from Frackman
 		// determine which direction to face to get closer to frackman
