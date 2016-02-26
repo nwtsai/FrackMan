@@ -182,11 +182,10 @@ bool StudentWorld::isCloseToAnyActor(int x, int y)
 
 bool StudentWorld::isCollidingWith(int x, int y, Actor* act)
 {
-	//cout << x << " " << y << " " << act->getX() << " " << act->getY() << endl;
 	return isWithinRadius(x, y, act->getX(), act->getY(), 3.0);
 }
 
-bool StudentWorld::canMoveHere(int x, int y)
+bool StudentWorld::canFrackmanMoveHere(int x, int y)
 {
 	vector<Actor*>::iterator p = m_actors.begin();
 	while (p != m_actors.end())
@@ -200,7 +199,7 @@ bool StudentWorld::canMoveHere(int x, int y)
 	return true;
 }
 
-bool StudentWorld::canStepHere(int x, int y, GraphObject::Direction dir)
+bool StudentWorld::canProtestersStepHere(int x, int y, GraphObject::Direction dir)
 {
 	if (dir == Actor::right)
 	{
@@ -352,6 +351,7 @@ int StudentWorld::annoyAProtester(int x, int y, char cause)
 		}
 		p++;
 	}
+	
 	// if the actor is not any type of protester
 	return 0;
 }
@@ -394,7 +394,7 @@ GraphObject::Direction StudentWorld::faceTheFrack(int x, int y)
 	else if (y > fy)
 		return Actor::down;
 	else
-		return Actor::up; // if the coordinates x and y are directly on top of the frackman, return up as default
+		return Actor::left; // if the coordinates x and y are directly on top of the frackman, return left as default
 }
 
 GraphObject::Direction StudentWorld::getRandDir()
@@ -415,7 +415,7 @@ GraphObject::Direction StudentWorld::canTurn(int x, int y, GraphObject::Directio
 	if (dir == Actor::up || dir == Actor::down)
 	{
 		// choose a random direction
-		if (canStepHere(x, y, Actor::left) && canStepHere(x, y, Actor::right))
+		if (canProtestersStepHere(x, y, Actor::left) && canProtestersStepHere(x, y, Actor::right))
 		{
 			int num = randInt(1, 2);
 			if (num == 1)
@@ -423,9 +423,9 @@ GraphObject::Direction StudentWorld::canTurn(int x, int y, GraphObject::Directio
 			else
 				return Actor::right;
 		}
-		else if (canStepHere(x, y, Actor::left))
+		else if (canProtestersStepHere(x, y, Actor::left))
 			return Actor::left;
-		else if (canStepHere(x, y, Actor::right))
+		else if (canProtestersStepHere(x, y, Actor::right))
 			return Actor::right;
 		else
 			return Actor::none;
@@ -433,7 +433,7 @@ GraphObject::Direction StudentWorld::canTurn(int x, int y, GraphObject::Directio
 	else // if (dir == Actor::left || dir == Actor::right)
 	{
 		// choose a random direction
-		if (canStepHere(x, y, Actor::up) && canStepHere(x, y, Actor::down))
+		if (canProtestersStepHere(x, y, Actor::up) && canProtestersStepHere(x, y, Actor::down))
 		{
 			int num = randInt(1, 2);
 			if (num == 1)
@@ -441,9 +441,9 @@ GraphObject::Direction StudentWorld::canTurn(int x, int y, GraphObject::Directio
 			else
 				return Actor::down;
 		}
-		else if (canStepHere(x, y, Actor::up))
+		else if (canProtestersStepHere(x, y, Actor::up))
 			return Actor::up;
-		else if (canStepHere(x, y, Actor::down))
+		else if (canProtestersStepHere(x, y, Actor::down))
 			return Actor::down;
 		else
 			return Actor::none;
@@ -787,8 +787,13 @@ int StudentWorld::max(int a, int b)
 
 int StudentWorld::randInt(int l, int h)
 {
+	// if the h is less than l, swap the values
 	if (h < l)
-		swap(h, l); 
+	{
+		int temp = h;
+		h = l;
+		l = temp;
+	}
 	return l + (rand() % (h - l + 1)); 
 }
 

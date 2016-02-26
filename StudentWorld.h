@@ -23,19 +23,15 @@ public:
 	StudentWorld(std::string assetDir);
 	~StudentWorld();
 
-	virtual bool isCloseTo(int x, int y, Actor* obj);
-	virtual bool isCollidingWith(int x, int y, Actor* obj);
-
 	bool isWithinRadius(int x1, int y1, int x2, int y2, double r);
-	bool isCloseToAnyActor(int x, int y);
-	bool canMoveHere(int x, int y);
-	bool canStepHere(int x, int y, GraphObject::Direction dir);
+	bool isCollidingWith(int x, int y, Actor* obj);
+	bool canFrackmanMoveHere(int x, int y);
+	bool canProtestersStepHere(int x, int y, GraphObject::Direction dir);
 	bool isThereDirtHere(int x, int y);
 	bool isThereDirtInThisBox(int x, int y);
 	bool isThereBoulderInThisBox(int x, int y);
 	bool clearOfDirtBoulder(int x, int y);
 	bool isThereBoulderUnderMe(int x, int y);
-	bool isCollidingWithBoulder(int x, int y);
 	bool isWithinShoutingDistance(int x, int y);
 	bool isFacingFrackMan(int x, int y, GraphObject::Direction dir);
 	bool isInLineOfSight(int x, int y);
@@ -60,9 +56,12 @@ public:
 	GraphObject::Direction getIntimateWithFrack(int &x, int &y);
 
 	FrackMan* getFrack();
-	string formatDisplayText(int score, int level, int lives, int health, int squirts, int gold, int sonar, int barrelsLeft);
 
 private:
+	bool isCloseTo(int x, int y, Actor* obj);
+	bool isCloseToAnyActor(int x, int y);
+	bool isCollidingWithBoulder(int x, int y);
+
 	void addBoulders();
 	void addNuggets();
 	void addBarrels();
@@ -86,6 +85,8 @@ private:
 	int maxNumProtesters;
 	int hardCoreMaxVal;
 	
+	string formatDisplayText(int score, int level, int lives, int health, int squirts, int gold, int sonar, int barrelsLeft);
+
 	struct Coord
 	{
 	public:

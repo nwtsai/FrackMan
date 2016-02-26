@@ -15,11 +15,12 @@ public:
 	Actor(int id, int x, int y, Direction dir, double size, unsigned int depth);
 	virtual ~Actor();
 	virtual void doSomething() = 0;
-	virtual bool isStillAlive();
-	virtual void setDead();
+	virtual void getAnnoyed(char cause);
 	virtual bool doesThisBlock();
 	virtual int isProtester();
-	virtual void getAnnoyed(char cause);
+	bool isStillAlive();
+	void setDead();
+
 private:
 	bool m_alive;
 };
@@ -42,9 +43,10 @@ public:
 	LivingActor(int id, int x, int y, Direction dir, double size, unsigned int depth, StudentWorld* world, int hp);
 	virtual ~LivingActor();
 	virtual void doSomething() = 0;
-	StudentWorld* getWorld() const;
-	int getHP() const;
 	void reduceHP(int num);
+	int getHP() const;
+	StudentWorld* getWorld() const;
+	
 private:
 	StudentWorld* m_World;
 	int m_hp;
@@ -73,11 +75,10 @@ public:
 	FrackMan(StudentWorld* world);
 	~FrackMan();
 	virtual void doSomething();
+	virtual void getAnnoyed(char cause);
 	int getSquirts() const;
 	int getsCharges() const;
 	int getGold() const;
-	virtual void getAnnoyed(char cause);
-	
 	void addSquirts();
 	void addCharges();
 	void addGold();
@@ -217,4 +218,5 @@ public:
 private:
 	int tickCounter;
 };
+
 #endif // ACTOR_H_
