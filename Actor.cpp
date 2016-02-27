@@ -10,9 +10,7 @@ Actor::Actor(int id, int x, int y, Direction dir, double size, unsigned int dept
 {}
 
 Actor::~Actor()
-{
-	setVisible(false);
-}
+{}
 
 bool Actor::isStillAlive()
 {
@@ -30,7 +28,8 @@ bool Actor::doesThisBlock()
 	return false;
 }
 
-int Actor::isProtester() // returns 0 if not protester, 1 if regular protester, 2 if hardcore protester
+// returns 0 if not protester, 1 if regular protester, 2 if hardcore protester
+int Actor::isProtester() 
 {
 	return 0;
 }
@@ -759,8 +758,7 @@ bool Protester::normalMove1()
 	else if (getWorld()->isWithinShoutingDistance(getX(), getY()) && getWorld()->isFacingFrackMan(getX(), getY(), getDirection()) && getHasShouted() == false)
 	{
 		shout();
-		setTickCounter();
-		setTickCounter(15 * getTickCounter());
+		setTickCounter(45);
 		return true;
 	}
 	else
@@ -886,10 +884,6 @@ void HardcoreProtester::doSomething()
 		int tempY = getY();
 		dir = getWorld()->getIntimateWithFrack(tempX, tempY);
 
-		// if he is <= M legal steps away from Frackman
-		// determine which direction to face to get closer to frackman
-		// setDirection(this dir)
-		// takeStep(getDirection());
 		if (!getWorld()->isWithinShoutingDistance(getX(), getY()) && dir != none) 
 		{
 			setDirection(dir);
