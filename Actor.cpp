@@ -875,8 +875,6 @@ void HardcoreProtester::getAnnoyed(char cause)
 
 void HardcoreProtester::doSomething()
 {
-	int M = 16 * getWorld()->getLevel() * 2;
-
 	if (!normalMove1())
 	{	
 		Direction dir = none;
