@@ -1,5 +1,5 @@
 # FrackMan
-A video game based on the old arcade game 'Dig Dug' which exhibits inheritance, encapsulation, and complex shortest-path algorithms
+A video game based on the old arcade game 'Dig Dug' | Developed with C++
 
 # Description
 ‣ The object of the game is to find all hidden Oil Barrel objects and proceed to the next level without getting caught by the AI, also known as the Protesters. <br />
