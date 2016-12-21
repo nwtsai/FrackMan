@@ -1,4 +1,3 @@
-#
 # FrackMan
 A video game based on the old arcade game 'Dig Dug', circa 1982
 
